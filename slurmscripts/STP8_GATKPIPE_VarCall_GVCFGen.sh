@@ -5,9 +5,9 @@
 #SBATCH --partition=medium
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=32
 #SBATCH --time=24:00:00
-#SBATCH --mem=64G
+#SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
@@ -22,7 +22,7 @@ ref="/home/deniz/GenomicData/github/GATKPIPE/0_index/referenceIPO323/Zymoseptori
 echo "Creating GVCF directory..."
 mkdir -p ../GVCF
 
-MAX_JOBS=20  # Control the maximum number of parallel jobs
+MAX_JOBS=30  # Control the maximum number of parallel jobs
 running_jobs=0
 
 # GVCF generation
@@ -35,11 +35,13 @@ for i in *_recal.bam; do
   if [ ! -f "$output_file" ]; then
     echo "Processing file: $i"
     (
-    gatk --java-options "-Xmx4g" HaplotypeCaller \
+        gatk --java-options "-Xmx4g" HaplotypeCaller \
      -R $ref \
      -I $i \
      -O "$output_file" \
-     -ERC GVCF 
+     -ploidy 1 \
+     --max-alternate-alleles 2 \
+     -ERC GVCF
     ) &
     ((running_jobs++))
     if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
