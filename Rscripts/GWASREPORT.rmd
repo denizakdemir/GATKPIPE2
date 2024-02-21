@@ -1,0 +1,91 @@
+---
+title: "Principal Component Analysis and Data Cleaning"
+output: 
+  html_document:
+    code_folding: show
+    theme:
+      bg: "#202123"
+      fg: "#B8BCC2"
+      primary: "#EA80FC"
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+      version: 3
+---
+
+```{r setup, include=FALSE}
+if (requireNamespace("thematic")) 
+  thematic::thematic_rmd(font = "auto")
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Preprocessing
+
+The data has been preprocessed by TASSEL.
+
+```{r set-working-directory}
+# Set the working directory to the location of your file, if necessary
+setwd("/path/to/your/directory")
+```
+
+## Reading the PCs File
+
+```{r read-pcs}
+pcs <- read.table("6_tassel_analysis/pca_filtered1.txt", header = TRUE, sep = "\t", as.is = TRUE, skip=2)
+head(pcs)
+```
+
+## Filtering Data
+
+Remove specific entries from the data and handle duplicates.
+
+```{r filter-data}
+# Filtering specific taxa
+excludedTaxa <- c("S101_EKDN220047288-1A_HMVJWDSX5_L2", "S25_combined_EKDN23H000001-1A_HNHFYDSX5_L4")
+filtered_pcs <- pcs %>%
+  filter(!Taxa %in% excludedTaxa)
+
+# Counting and filtering duplicated taxa
+duplicatedTaxaCounts <- table(substr(filtered_pcs$Taxa, 1, 4))
+duplicatedTaxa <- names(duplicatedTaxaCounts[duplicatedTaxaCounts > 1])
+filtered_pcs_duplicated <- filtered_pcs[grepl(paste(duplicatedTaxa, collapse="|"), filtered_pcs$Taxa),]
+filtered_pcs_nonduplicated <- filtered_pcs[!grepl(paste(duplicatedTaxa, collapse="|"), filtered_pcs$Taxa),]
+
+# Keeping only one of the duplicated entries
+excludeNames <- c("S12_", "S19_", "S20_", "S23_", "S3_", "S42_", "S57_", "S6_", "S7_")
+for (i in excludeNames) {
+  temp <- filtered_pcs_duplicated[grepl(i, filtered_pcs_duplicated$Taxa),]
+  if (nrow(temp) > 0) {
+    filtered_pcs_nonduplicated <- rbind(filtered_pcs_nonduplicated, temp[1,])
+  }
+}
+```
+
+## Visualizing the Data
+
+Plotting the first two principal components.
+
+```{r plot-pcs}
+ggplot(filtered_pcs_nonduplicated, aes(x=PC1, y=PC2, color=PC3)) + 
+  geom_point() + 
+  theme_minimal() +
+  geom_text(aes(label=Taxa), hjust=0, vjust=0)
+```
+
+## Additional Data Cleaning
+
+Handling short taxa names and sorting.
+
+```{r clean-and-sort}
+filtered_pcs_nonduplicated$TaxaShort <- substr(filtered_pcs_nonduplicated$Taxa, 1, 4)
+filtered_pcs_nonduplicated$TaxaShort <- gsub("_.*", "", filtered_pcs_nonduplicated$TaxaShort)
+filtered_pcs_nonduplicated <- filtered_pcs_nonduplicated[order(as.numeric(gsub("S", "", filtered_pcs_nonduplicated$TaxaShort))),]
+head(filtered_pcs_nonduplicated)
+```
