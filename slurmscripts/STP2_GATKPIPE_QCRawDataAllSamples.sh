@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=12:00:00
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
