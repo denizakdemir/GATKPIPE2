@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=12:00:00
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
@@ -19,6 +19,7 @@ module load Python
 if ! [ -x "$(command -v multiqc)" ]; then
   pip install --user multiqc
 fi
+export _JAVA_OPTIONS="-Xms256m -Xmx60g"
 
 # Navigate to the FastQC directory
 cd 2_fastqc
@@ -61,7 +62,7 @@ DEST_DIR="2_fastqc/filtered_trimmedsamples"
 mkdir -p "$DEST_DIR"
 
 # Array of sample prefixes to exclude
-EXCLUDE_SAMPLES=("S25_combined_EKDN23H000001" "S101_EKDN220047288-1A")
+EXCLUDE_SAMPLES=("S101_EKDN220047288-1A")
 
 # Function to check if a file name starts with any of the excluded prefixes
 function is_excluded {
