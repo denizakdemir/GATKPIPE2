@@ -16,6 +16,7 @@ module load BWA/0.7.17-GCC-8.2.0-2.31.1
 module load SAMtools/1.16.1-GCC-11.3.0
 module load Java/1.8.0_212
 module load picard/2.26.10-Java-15
+export _JAVA_OPTIONS="-Xms256m -Xmx60g"
 
 # Directory containing the filtered trimmed samples
 SAMPLE_DIR="2_fastqc/filtered_trimmedsamples"
