@@ -34,7 +34,7 @@ MAX_JOBS=8
 running_jobs=0
 for i in trimmedsamples/*.fq.gz; do
     # Skip files that start with the specified prefixes
-    if [[ $i != *"S25_combined_EKDN23H000001"* ]] && [[ $i != *"S101_EKDN220047288-1A"* ]]; then
+    if [[[ $i != *"S101_EKDN220047288-1A"* ]]; then
         fastqc "$i" -o FastQC_reports_Trimmed_Filtered &
         ((running_jobs++))
         if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
