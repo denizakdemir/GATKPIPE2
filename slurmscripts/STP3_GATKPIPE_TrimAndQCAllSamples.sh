@@ -30,6 +30,10 @@ cd 2_fastqc
 mkdir -p trimmedsamples
 mkdir -p FastQC_reports_Trimmed
 
+
+
+export _JAVA_OPTIONS="-Xms256m -Xmx60g"
+
 # Trimming with Trimmomatic
 MAX_JOBS=8
 running_jobs=0
