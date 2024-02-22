@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=24:00:00
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
@@ -19,6 +19,8 @@
 module load FastQC/0.11.8-Java-1.8
 module load Python
 module load Trimmomatic/0.38-Java-1.8
+
+export _JAVA_OPTIONS="-Xms256m -Xmx60g"
 
 # Check if MultiQC is installed, if not, install it
 if ! [ -x "$(command -v multiqc)" ]; then
@@ -34,32 +36,32 @@ mkdir -p FastQC_reports_Trimmed
 
 export _JAVA_OPTIONS="-Xms256m -Xmx60g"
 
-# Trimming with Trimmomatic
-MAX_JOBS=8
-running_jobs=0
-for forward in ../1_data/fastq_set1/*/01.RawData/*/*_1.fq.gz ../1_data/fastq_set2/*/01.RawData/*/*_1.fq.gz; do
-    reverse="${forward/_1.fq.gz/_2.fq.gz}"
-    basename=$(basename "$forward" "_1.fq.gz")
-    forward_out="trimmedsamples/${basename}_1_trimmed.fq.gz"
-    reverse_out="trimmedsamples/${basename}_2_trimmed.fq.gz"
-    forward_unpaired="${forward_out}_unpaired"
-    reverse_unpaired="${reverse_out}_unpaired"
+# # Trimming with Trimmomatic
+# MAX_JOBS=8
+# running_jobs=0
+# for forward in ../1_data/fastq_set1/*/01.RawData/*/*_1.fq.gz ../1_data/fastq_set2/*/01.RawData/*/*_1.fq.gz; do
+#     reverse="${forward/_1.fq.gz/_2.fq.gz}"
+#     basename=$(basename "$forward" "_1.fq.gz")
+#     forward_out="trimmedsamples/${basename}_1_trimmed.fq.gz"
+#     reverse_out="trimmedsamples/${basename}_2_trimmed.fq.gz"
+#     forward_unpaired="${forward_out}_unpaired"
+#     reverse_unpaired="${reverse_out}_unpaired"
 
-    # Ensure the path to Trimmomatic and its adapters is correct
-    java -jar $EBROOTTRIMMOMATIC/trimmomatic-0.38.jar PE -threads 4 -phred33 \
-    "$forward" "$reverse" \
-    "$forward_out" "$forward_unpaired" \
-    "$reverse_out" "$reverse_unpaired" \
-    ILLUMINACLIP:$EBROOTTRIMMOMATIC/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 &
-    ((running_jobs++))
-    if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
-        while [ $running_jobs -ge $MAX_JOBS ]; do
-            sleep 1  # wait for 1 second before checking again
-            running_jobs=$(jobs -p | wc -l)  # update the count of running jobs
-        done
-    fi
-done
-wait
+#     # Ensure the path to Trimmomatic and its adapters is correct
+#     java -jar $EBROOTTRIMMOMATIC/trimmomatic-0.38.jar PE -threads 4 -phred33 \
+#     "$forward" "$reverse" \
+#     "$forward_out" "$forward_unpaired" \
+#     "$reverse_out" "$reverse_unpaired" \
+#     ILLUMINACLIP:$EBROOTTRIMMOMATIC/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 &
+#     ((running_jobs++))
+#     if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
+#         while [ $running_jobs -ge $MAX_JOBS ]; do
+#             sleep 1  # wait for 1 second before checking again
+#             running_jobs=$(jobs -p | wc -l)  # update the count of running jobs
+#         done
+#     fi
+# done
+# wait
 
 # FastQC analysis on trimmed FASTQ files
 MAX_JOBS=8
