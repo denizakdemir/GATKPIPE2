@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --mem=64G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
@@ -14,6 +14,9 @@
 # to run the script: 
 # loadmod
 # sbatch slurmscripts/STP2_GATKPIPE_QCRawDataAllSamples.sh
+
+export _JAVA_OPTIONS="-Xms256m -Xmx60g"
+
 
 module load FastQC/0.11.8-Java-1.8
 module load Python
