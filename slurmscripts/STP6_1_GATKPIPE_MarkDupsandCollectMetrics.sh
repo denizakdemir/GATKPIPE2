@@ -21,6 +21,7 @@ module load Python
 # Install Python packages
 pip install --user numpy --upgrade
 
+export _JAVA_OPTIONS="-Xms256m -Xmx60g"
 
 # Reference genome
 ref="/home/deniz/GenomicData/github/GATKPIPE/0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
