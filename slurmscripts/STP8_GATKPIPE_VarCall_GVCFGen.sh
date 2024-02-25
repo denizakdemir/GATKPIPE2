@@ -41,8 +41,7 @@ for i in *_recal.bam; do
      -O "$output_file" \
      -ploidy 1 \
      --max-alternate-alleles 2 \
-     -ERC GVCF 
-  ) &  # This line had the misplaced closing parenthesis
+     -ERC GVCF ) &
     ((running_jobs++))
     if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
         while [ $running_jobs -ge $MAX_JOBS ]; do
