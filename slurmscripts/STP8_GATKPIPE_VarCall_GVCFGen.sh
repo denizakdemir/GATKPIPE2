@@ -28,13 +28,14 @@ running_jobs=0
 # GVCF generation
 echo "Starting GVCF generation..."
 for i in *_recal.bam; do
+  (
   base=$(basename ${i} _recal.bam)
   output_file="../GVCF/${base}.g.vcf.gz"
 
   # Check if the output file already exists
   if [ ! -f "$output_file" ]; then
     echo "Processing file: $i"
-    (
+
         gatk --java-options "-Xmx4g" HaplotypeCaller \
      -R $ref \
      -I $i \

@@ -44,55 +44,55 @@ BaseQRankSum_lower=-2.0
 BaseQRankSum_upper=2.0
 
 # Variant calling and filtration
-# echo "Starting variant calling and filtration..."
-# for i in *_sorted_md.bam; do
-# (base=$(basename ${i} _sorted_md.bam)
+echo "Starting variant calling and filtration..."
+for i in *_sorted_md.bam; do
+(base=$(basename ${i} _sorted_md.bam)
 
-#   echo "Processing file: $i"
+  echo "Processing file: $i"
 
-#   # Variant calling
-#   echo "Running HaplotypeCaller for $i..."
+  # Variant calling
+  echo "Running HaplotypeCaller for $i..."
 
-#   gatk HaplotypeCaller -R $ref -I $i -O "../../4_processing/Initial_variants/${base}_raw_variants.vcf"
+  gatk HaplotypeCaller -R $ref -I $i -O "../../4_processing/Initial_variants/${base}_raw_variants.vcf"
 
-#   # SNP selection and filtration
-#   echo "Selecting and filtering SNPs for $i..."
-#   gatk SelectVariants -R $ref -V "../../4_processing/Initial_variants/${base}_raw_variants.vcf" -select-type SNP -O "../../4_processing/Initial_variants/${base}_raw_snps.vcf"
-#   gatk VariantFiltration -R $ref -V "../../4_processing/Initial_variants/${base}_raw_snps.vcf" -O "../../4_processing/Initial_variants/${base}_filtered_snps.vcf" \
-#     --filter-expression "FS > $FSTHR" --filter-name "FS_filter" \
-#     --filter-expression "MQ < $MQTHR" --filter-name "MQ_filter" \
-#     --filter-expression "QD < $QDTHR" --filter-name "QD_filter" \
-#     --genotype-filter-expression "DP < 3" --genotype-filter-name "Low_depth" --set-filtered-genotype-to-no-call \
-#     --filter-expression "ReadPosRankSum < $ReadPosRankSum_lower" --filter-name "ReadPosRankSumL" \
-#     --filter-expression "ReadPosRankSum > $ReadPosRankSum_upper" --filter-name "ReadPosRankSumH" \
-#     --filter-expression "MQRankSum < $MQRankSum_lower" --filter-name "MQRankSumL" \
-#     --filter-expression "MQRankSum > $MQRankSum_upper" --filter-name "MQRankSumH" \
-#     --filter-expression "BaseQRankSum < $BaseQRankSum_lower" --filter-name "BaseQRankSumL" \
-#     --filter-expression "BaseQRankSum > $BaseQRankSum_upper" --filter-name "BaseQRankSumH" 
-#   gatk SelectVariants --exclude-filtered \
-#     --exclude-non-variants --remove-unused-alternates \
-#     -V "../../4_processing/Initial_variants/${base}_filtered_snps.vcf" -O "../../4_processing/Initial_variants/${base}_bqsr_snps.vcf"
+  # SNP selection and filtration
+  echo "Selecting and filtering SNPs for $i..."
+  gatk SelectVariants -R $ref -V "../../4_processing/Initial_variants/${base}_raw_variants.vcf" -select-type SNP -O "../../4_processing/Initial_variants/${base}_raw_snps.vcf"
+  gatk VariantFiltration -R $ref -V "../../4_processing/Initial_variants/${base}_raw_snps.vcf" -O "../../4_processing/Initial_variants/${base}_filtered_snps.vcf" \
+    --filter-expression "FS > $FSTHR" --filter-name "FS_filter" \
+    --filter-expression "MQ < $MQTHR" --filter-name "MQ_filter" \
+    --filter-expression "QD < $QDTHR" --filter-name "QD_filter" \
+    --genotype-filter-expression "DP < 3" --genotype-filter-name "Low_depth" --set-filtered-genotype-to-no-call \
+    --filter-expression "ReadPosRankSum < $ReadPosRankSum_lower" --filter-name "ReadPosRankSumL" \
+    --filter-expression "ReadPosRankSum > $ReadPosRankSum_upper" --filter-name "ReadPosRankSumH" \
+    --filter-expression "MQRankSum < $MQRankSum_lower" --filter-name "MQRankSumL" \
+    --filter-expression "MQRankSum > $MQRankSum_upper" --filter-name "MQRankSumH" \
+    --filter-expression "BaseQRankSum < $BaseQRankSum_lower" --filter-name "BaseQRankSumL" \
+    --filter-expression "BaseQRankSum > $BaseQRankSum_upper" --filter-name "BaseQRankSumH" 
+  gatk SelectVariants --exclude-filtered \
+    --exclude-non-variants --remove-unused-alternates \
+    -V "../../4_processing/Initial_variants/${base}_filtered_snps.vcf" -O "../../4_processing/Initial_variants/${base}_bqsr_snps.vcf"
 
-#   # Indel selection and filtration
-#   echo "Selecting and filtering Indels for $i..."
-#   gatk SelectVariants -R $ref -V "../../4_processing/Initial_variants/${base}_raw_variants.vcf" -select-type INDEL -O "../../4_processing/Initial_variants/${base}_raw_indels.vcf"
-#   gatk VariantFiltration -R $ref -V "../../4_processing/Initial_variants/${base}_raw_indels.vcf" -O "../../4_processing/Initial_variants/${base}_filtered_indels.vcf" \
-#     --filter-expression "QD < $QDTHR" --filter-name "QD_filter" \
-#     --filter-expression "FS > 200.0" --filter-name "FS_filter" \
-#     --filter-expression "SOR > 10.0" --filter-name "SOR_filter" 
-#   gatk SelectVariants --exclude-filtered \
-#     --exclude-non-variants --remove-unused-alternates \
-#      -V "../../4_processing/Initial_variants/${base}_filtered_indels.vcf" -O "../../4_processing/Initial_variants/${base}_bqsr_indels.vcf" 
-#   ) &
-#     ((running_jobs++))
-#     if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
-#         while [ $running_jobs -ge $MAX_JOBS ]; do
-#             sleep 1  # wait for 1 second before checking again
-#             running_jobs=$(jobs -p | wc -l)  # update the count of running jobs
-#         done
-#     fi
-# done
-# wait
+  # Indel selection and filtration
+  echo "Selecting and filtering Indels for $i..."
+  gatk SelectVariants -R $ref -V "../../4_processing/Initial_variants/${base}_raw_variants.vcf" -select-type INDEL -O "../../4_processing/Initial_variants/${base}_raw_indels.vcf"
+  gatk VariantFiltration -R $ref -V "../../4_processing/Initial_variants/${base}_raw_indels.vcf" -O "../../4_processing/Initial_variants/${base}_filtered_indels.vcf" \
+    --filter-expression "QD < $QDTHR" --filter-name "QD_filter" \
+    --filter-expression "FS > 200.0" --filter-name "FS_filter" \
+    --filter-expression "SOR > 10.0" --filter-name "SOR_filter" 
+  gatk SelectVariants --exclude-filtered \
+    --exclude-non-variants --remove-unused-alternates \
+     -V "../../4_processing/Initial_variants/${base}_filtered_indels.vcf" -O "../../4_processing/Initial_variants/${base}_bqsr_indels.vcf" 
+  ) &
+    ((running_jobs++))
+    if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
+        while [ $running_jobs -ge $MAX_JOBS ]; do
+            sleep 1  # wait for 1 second before checking again
+            running_jobs=$(jobs -p | wc -l)  # update the count of running jobs
+        done
+    fi
+done
+wait
 
 # Base Quality Score Recalibration (BQSR)
 echo "Creating BQSR directory and starting Base Quality Score Recalibration..."
