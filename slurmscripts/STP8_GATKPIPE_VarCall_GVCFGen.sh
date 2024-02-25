@@ -28,8 +28,7 @@ running_jobs=0
 # GVCF generation
 echo "Starting GVCF generation..."
 for i in *_recal.bam; do
-  (
-  base=$(basename ${i} _recal.bam)
+  (base=$(basename ${i} _recal.bam)
   output_file="../GVCF/${base}.g.vcf.gz"
 
   # Check if the output file already exists
@@ -42,8 +41,7 @@ for i in *_recal.bam; do
      -O "$output_file" \
      -ploidy 1 \
      --max-alternate-alleles 2 \
-     -ERC GVCF
-    ) &
+     -ERC GVCF ) &
     ((running_jobs++))
     if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
         while [ $running_jobs -ge $MAX_JOBS ]; do
