@@ -35,13 +35,14 @@ for i in *_recal.bam; do
   if [ ! -f "$output_file" ]; then
     echo "Processing file: $i"
 
-        gatk --java-options "-Xmx4g" HaplotypeCaller \
+    gatk --java-options "-Xmx4g" HaplotypeCaller \
      -R $ref \
      -I $i \
      -O "$output_file" \
      -ploidy 1 \
      --max-alternate-alleles 2 \
-     -ERC GVCF ) &
+     -ERC GVCF 
+  ) &  # This line had the misplaced closing parenthesis
     ((running_jobs++))
     if [ "$running_jobs" -ge "$MAX_JOBS" ]; then
         while [ $running_jobs -ge $MAX_JOBS ]; do
@@ -54,5 +55,6 @@ for i in *_recal.bam; do
   fi
 done
 wait
+
 
 echo "GVCF generation completed."
