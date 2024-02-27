@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --time=24:00:00
+#SBATCH --time=36:00:00
 #SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
@@ -52,14 +52,14 @@ if [ ! -d "$TMP_DIR" ]; then
   chmod 777 "$TMP_DIR"
 fi
 
-# GenomicsDBImport command
-# gatk GenomicsDBImport \
-#    --genomicsdb-workspace-path $DB_PATH \
-#    -L $NEW_INTERVAL_LIST \
-#    --sample-name-map $GVCF_DIR/zymoseptoria.sample_map \
-#    --batch-size 16 \
-#    --overwrite-existing-genomicsdb-workspace \
-#    --tmp-dir $TMP_DIR \
-#    --reader-threads $SLURM_CPUS_PER_TASK
+GenomicsDBImport command
+gatk GenomicsDBImport \
+   --genomicsdb-workspace-path $DB_PATH \
+   -L $NEW_INTERVAL_LIST \
+   --sample-name-map $GVCF_DIR/zymoseptoria.sample_map \
+   --batch-size 16 \
+   --overwrite-existing-genomicsdb-workspace \
+   --tmp-dir $TMP_DIR \
+   --reader-threads $SLURM_CPUS_PER_TASK
 
 echo "Genomic DB created"
