@@ -2,12 +2,12 @@
 #SBATCH --job-name=GenomicDB
 #SBATCH --output=GenomicDB_%j.log
 #SBATCH --error=GenomicDB_%j.err
-#SBATCH --partition=long
+#SBATCH --partition=medium
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=24
-#SBATCH --time=60:00:00
-#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+#SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
