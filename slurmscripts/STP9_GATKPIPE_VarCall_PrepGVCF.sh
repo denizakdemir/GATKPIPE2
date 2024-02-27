@@ -12,10 +12,10 @@
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
 # Assuming your base directory is the parent directory of '4_processing'
-BASE_DIR="/home/deniz/GenomicData/github/GATKPIPE"  # Update this path if needed
-REF_DIR="$BASE_DIR/0_index/referenceIPO323"  # Adjusted to the detailed path
+BASE_DIR="/home/deniz/GenomicData/github/GATKPIPE2"  # Update this path if needed
+REF_DIR="/home/deniz/GenomicData/github/GATKPIPE2/0_index/referenceIPO323"  # Adjusted to the detailed path
 REF_GENOME="$REF_DIR/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
-GVCF_DIR="$BASE_DIR/4_processing/GVCF"
+GVCF_DIR="/home/deniz/GenomicData/github/GATKPIPE2/4_processing/GVCF"
 
 # Load modules
 module load GATK/4.1.2.0-GCCcore-8.2.0-Java-1.8 
