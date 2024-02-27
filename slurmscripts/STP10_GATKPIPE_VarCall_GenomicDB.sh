@@ -19,7 +19,7 @@ module load SAMtools/1.16.1-GCC-11.3.0
 BASE_DIR="/home/deniz/GenomicData/github/GATKPIPE2"  # Update this path if needed
 
 REF_DIR="/home/deniz/GenomicData/github/GATKPIPE2/0_index/referenceIPO323"  # Adjusted to the detailed path
-REF_GENOME="/home/deniz/GenomicData/github/GATKPIPE2/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
+REF_GENOME="/home/deniz/GenomicData/github/GATKPIPE2/0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
 
 GVCF_DIR="/home/deniz/GenomicData/github/GATKPIPE2/4_processing/GVCF"
 DB_PATH="$GVCF_DIR/GenomicsDB"
