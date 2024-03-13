@@ -18,7 +18,7 @@ module load BEDTools/2.28.0-GCC-8.2.0-2.31.1
 
 # Define variables
 REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
-VCF_FILE="5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf"
+VCF_FILE="5_annotation/snpEff_snps/geno_filtered_snps.vcf"
 OUTPUT_DIR="extracted_sequences"
 mkdir -p ${OUTPUT_DIR}
 
