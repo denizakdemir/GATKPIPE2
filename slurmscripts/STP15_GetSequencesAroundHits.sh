@@ -21,10 +21,6 @@ VCF_FILE="5_annotation/snpEff_snps/geno_filtered_snps.vcf"
 OUTPUT_DIR="extracted_sequences"
 mkdir -p ${OUTPUT_DIR}
 
-# Index VCF file if not already indexed
-if [ ! -f "${VCF_FILE}.csi" ]; then
-    bcftools index ${VCF_FILE}
-fi
 
 # Define regions to extract - 500bp flanking regions
 REGIONS=("3:1981024-1982024" "7:2122486-2123486" "2:3164088-3165088")
