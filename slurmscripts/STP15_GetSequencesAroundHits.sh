@@ -42,3 +42,19 @@ for REGION in "${REGIONS[@]}"; do
 done
 
 echo "Sequence extraction completed."
+
+
+# Define variables
+OUTPUT_DIR="extracted_sequences"
+mkdir -p ${OUTPUT_DIR}
+
+# Define SNP positions
+SNP_POSITIONS=("3:1981524" "7:2122986" "2:3164588")
+
+# Extract genotypes for each SNP position
+for SNP_POS in "${SNP_POSITIONS[@]}"; do
+    # Use bcftools query to extract genotypes
+    bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' -r $SNP_POS $VCF_FILE > "${OUTPUT_DIR}/${SNP_POS}_genotypes.txt"
+done
+
+echo "Genotype extraction completed."
