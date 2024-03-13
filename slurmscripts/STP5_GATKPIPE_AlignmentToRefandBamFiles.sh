@@ -22,7 +22,7 @@ export _JAVA_OPTIONS="-Xms256m -Xmx60g"
 SAMPLE_DIR="2_fastqc/filtered_trimmedsamples"
 
 # Reference genome file
-REF_GENOME="/home/deniz/GenomicData/github/GATKPIPE/0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
+REF_GENOME="/home/deniz/GenomicData/github/GATKPIPE2/0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
 
 # Index the reference genome for BWA
 bwa index "$REF_GENOME"

@@ -16,7 +16,7 @@ module load GATK/4.1.2.0-GCCcore-8.2.0-Java-1.8
 
 cd 4_processing/BQSR
 # Define reference genome
-ref="/home/deniz/GenomicData/github/GATKPIPE/0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
+ref="/home/deniz/GenomicData/github/GATKPIPE2/0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
 
 # Create GVCF directory
 echo "Creating GVCF directory..."

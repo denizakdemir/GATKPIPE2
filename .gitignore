@@ -47,3 +47,14 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+*.png
+*.pdf
+*.html
+*.RData
+ProcessedVCFs/
+*.csv
+*.vcf
+*.vcf.gz
+
+

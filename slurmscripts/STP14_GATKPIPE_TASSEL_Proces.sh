@@ -114,5 +114,10 @@ zip -r 6_tassel_analysis_indels.zip 6_tassel_analysis_indels
 echo "TASSEL analysis files zipped."
 
 # To download the files, use the following command, replacing the username and server address with your own
-#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE/6_tassel_analysis.zip ~/Desktop
-#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE/6_tassel_analysis_indels.zip ~/Desktop
+#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE2/6_tassel_analysis.zip ~/Desktop
+#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE2/6_tassel_analysis_indels.zip ~/Desktop
+#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE2/5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf.gz ~/Desktop
+#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE2/5_annotation/snpEff_indels/geno_filtered_indels.ann.vcf.gz ~/Desktop
+
+geno_filtered_snps.ann.vcf.gz
+geno_filtered_indels.ann.vcf.gz
