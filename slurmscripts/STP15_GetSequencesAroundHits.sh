@@ -77,8 +77,8 @@ echo "Genotype extraction for individual strains completed."
 # Define directories and files
 REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
 VCF_DIR="4_processing/GVCF"
-OUTPUT_DIR_CONSENSUS="${OUTPUT_DIR}/consensus_sequences"
-mkdir -p ${OUTPUT_DIR_CONSENSUS}
+OUTPUT_DIR="extracted_sequences"
+mkdir -p ${OUTPUT_DIR}
 
 # Define regions (same as before)
 REGIONS=("3:1981024-1982024" "7:2122486-2123486" "2:3164088-3165088")
@@ -101,10 +101,18 @@ for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
         END=${POS[1]}
         REGION_STR="${CHROM}:${START}-${END}"
         REGION_FILE="${OUTPUT_DIR}/${CHROM}_${START}_${END}.fasta"
-        CONSENSUS_FILE="${OUTPUT_DIR_CONSENSUS}/${STRAIN_NAME}_${CHROM}_${START}_${END}_consensus.fasta"
+        TEMP_VCF="${OUTPUT_DIR}/${STRAIN_NAME}_${CHROM}_${START}_${END}.vcf"
+        CONSENSUS_FILE="${OUTPUT_DIR}/consensus_${STRAIN_NAME}_${CHROM}_${START}_${END}.fasta"
+
+        # Filter VCF for the specific region
+        bcftools view -Oz -o ${TEMP_VCF}.gz -r ${REGION_STR} ${VCF_FILE}
+        bcftools index ${TEMP_VCF}.gz
 
         # Use bcftools consensus to apply the VCF variants to the reference sequence
-        bcftools consensus -f ${REGION_FILE} -r ${REGION_STR} ${VCF_FILE} -o ${CONSENSUS_FILE}
+        bcftools consensus -f ${REGION_FILE} -o ${CONSENSUS_FILE} ${TEMP_VCF}.gz
+
+        # Clean up temporary files
+        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi
     done
 done
 
