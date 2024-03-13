@@ -22,6 +22,8 @@ VCF_FILE="5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf.gz"
 OUTPUT_DIR="extracted_sequences"
 mkdir -p ${OUTPUT_DIR}
 
+bcftools index ${VCF_FILE}
+
 # Define regions to extract - 500bp flanking regions
 REGIONS=("3:1981024-1982024" "7:2122486-2123486" "2:3164088-3165088")
 
@@ -54,7 +56,7 @@ SNP_POSITIONS=("3:1981524" "7:2122986" "2:3164588")
 # Extract genotypes for each SNP position
 for SNP_POS in "${SNP_POSITIONS[@]}"; do
     # Use bcftools query to extract genotypes
-    bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' -r $SNP_POS $VCF_FILE > "${OUTPUT_DIR}/${SNP_POS}_genotypes.txt"
+    bcftools query -f '%CHR\t%POS\t%REF\t%ALT[\t%GT]\n' -r $SNP_POS $VCF_FILE > "${OUTPUT_DIR}/${SNP_POS}_genotypes.txt"
 done
 
 echo "Genotype extraction completed."
