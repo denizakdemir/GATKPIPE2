@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #SBATCH --job-name=ExtractSequences
 #SBATCH --output=ExtractSequences_%j.log
