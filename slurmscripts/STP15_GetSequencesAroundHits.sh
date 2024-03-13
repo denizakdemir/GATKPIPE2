@@ -72,3 +72,40 @@ for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
 done
 
 echo "Genotype extraction for individual strains completed."
+
+
+# Define directories and files
+REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
+VCF_DIR="4_processing/GVCF"
+OUTPUT_DIR_CONSENSUS="${OUTPUT_DIR}/consensus_sequences"
+mkdir -p ${OUTPUT_DIR_CONSENSUS}
+
+# Define regions (same as before)
+REGIONS=("3:1981024-1982024" "7:2122486-2123486" "2:3164088-3165088")
+
+# Iterate over individual VCF files to create consensus sequences
+for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
+    STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
+
+    # Index the VCF file if not already indexed
+    if [ ! -f "${VCF_FILE}.tbi" ]; then
+        bcftools index ${VCF_FILE}
+    fi
+
+    for REGION in "${REGIONS[@]}"; do
+        # Define variables for region-specific operations
+        IFS=':' read -ra ADDR <<< "$REGION"
+        CHROM=${ADDR[0]}
+        IFS='-' read -ra POS <<< "${ADDR[1]}"
+        START=${POS[0]}
+        END=${POS[1]}
+        REGION_STR="${CHROM}:${START}-${END}"
+        REGION_FILE="${OUTPUT_DIR}/${CHROM}_${START}_${END}.fasta"
+        CONSENSUS_FILE="${OUTPUT_DIR_CONSENSUS}/${STRAIN_NAME}_${CHROM}_${START}_${END}_consensus.fasta"
+
+        # Use bcftools consensus to apply the VCF variants to the reference sequence
+        bcftools consensus -f ${REGION_FILE} -r ${REGION_STR} ${VCF_FILE} -o ${CONSENSUS_FILE}
+    done
+done
+
+echo "Consensus sequence extraction for individual strains completed."
