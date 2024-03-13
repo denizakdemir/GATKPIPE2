@@ -18,7 +18,7 @@ module load BEDTools/2.28.0-GCC-8.2.0-2.31.1
 
 # Define variables
 REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
-VCF_FILE="5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf.gz"
+VCF_FILE="5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf"
 OUTPUT_DIR="extracted_sequences"
 mkdir -p ${OUTPUT_DIR}
 
@@ -56,7 +56,7 @@ SNP_POSITIONS=("3:1981524" "7:2122986" "2:3164588")
 # Extract genotypes for each SNP position
 for SNP_POS in "${SNP_POSITIONS[@]}"; do
     # Use bcftools query to extract genotypes
-    bcftools query -f '%CHR\t%POS\t%REF\t%ALT[\t%GT]\n' -r $SNP_POS $VCF_FILE > "${OUTPUT_DIR}/${SNP_POS}_genotypes.txt"
+    bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' -r "7:2122986-2122986" ${VCF_FILE}
 done
 
 echo "Genotype extraction completed."
