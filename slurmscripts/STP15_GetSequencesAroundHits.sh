@@ -73,7 +73,6 @@ done
 
 echo "Genotype extraction for individual strains completed."
 
-
 # Define directories and files
 REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
 VCF_DIR="4_processing/GVCF"
@@ -96,7 +95,7 @@ for REGION in "${REGIONS[@]}"; do
     > ${REGION_FASTA_FILE} # Clear the file if exists or create it if not
 done
 
-# Iterate over individual VCF files to create consensus sequences
+# Iterate over individual VCF files to append consensus sequences with sample names
 for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
     STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
 
@@ -121,12 +120,18 @@ for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
         bcftools view -Oz -o ${TEMP_VCF}.gz -r ${REGION_STR} ${VCF_FILE}
         bcftools index ${TEMP_VCF}.gz
 
-        # Use bcftools consensus to apply the VCF variants to the reference sequence and append to region-specific FASTA
+        # Generate a temporary consensus sequence
         bcftools consensus -f ${REGION_FILE} -o temp_consensus.fasta ${TEMP_VCF}.gz
-        cat temp_consensus.fasta >> ${REGION_FASTA_FILE}
+
+        # Add header with strain name to the temporary consensus sequence
+        echo ">${STRAIN_NAME}" > temp_header.fasta
+        cat temp_consensus.fasta >> temp_header.fasta
+
+        # Append the consensus sequence with header to the region-specific FASTA file
+        cat temp_header.fasta >> ${REGION_FASTA_FILE}
 
         # Clean up temporary files
-        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi temp_consensus.fasta
+        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi temp_consensus.fasta temp_header.fasta
     done
 done
 
