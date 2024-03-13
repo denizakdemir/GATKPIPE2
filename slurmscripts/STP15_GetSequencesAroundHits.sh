@@ -42,14 +42,33 @@ for REGION in "${REGIONS[@]}"; do
 done
 
 echo "Reference sequence extraction completed."
+# Define variables
+REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
+VCF_DIR="4_processing/GVCF"
+OUTPUT_DIR="extracted_sequences"
+mkdir -p ${OUTPUT_DIR}
 
 # Define SNP positions
-SNP_POSITIONS=("chr3:1981524" "chr7:2122986" "chr2:3164588")
+SNP_POSITIONS=("3:1981524" "7:2122986" "2:3164588")
 
-# Extract genotypes for each SNP position
-for SNP_POS in "${SNP_POSITIONS[@]}"; do
-    # Correctly use SNP_POS variable in the query
-    bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' -r ${SNP_POS} ${VCF_FILE} > "${OUTPUT_DIR}/${SNP_POS}_genotypes.txt"
+# Iterate over individual VCF files
+for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
+    # Extract the strain name from the VCF filename
+    STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
+    
+    # Make sure the VCF file is indexed
+    if [ ! -f "${VCF_FILE}.tbi" ]; then
+        bcftools index ${VCF_FILE}
+    fi
+    
+    # Extract genotypes for each SNP position for the current strain
+    for SNP_POS in "${SNP_POSITIONS[@]}"; do
+        # Define output file name based on strain and SNP position
+        OUTPUT_FILE="${OUTPUT_DIR}/${STRAIN_NAME}_$(echo ${SNP_POS} | tr ':' '_')_genotypes.txt"
+        
+        # Use bcftools query to extract genotypes
+        bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' -r ${SNP_POS} ${VCF_FILE} > ${OUTPUT_FILE}
+    done
 done
 
-echo "Genotype extraction completed."
+echo "Genotype extraction for individual strains completed."
