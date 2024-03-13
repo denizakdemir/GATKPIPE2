@@ -78,10 +78,23 @@ echo "Genotype extraction for individual strains completed."
 REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
 VCF_DIR="4_processing/GVCF"
 OUTPUT_DIR="extracted_sequences"
+OUTPUT_DIR_CONSENSUS="${OUTPUT_DIR}/consensus_sequences"
 mkdir -p ${OUTPUT_DIR}
+mkdir -p ${OUTPUT_DIR_CONSENSUS}
 
 # Define regions (same as before)
 REGIONS=("3:1981024-1982024" "7:2122486-2123486" "2:3164088-3165088")
+
+# Initialize or clear region-specific consensus FASTA files
+for REGION in "${REGIONS[@]}"; do
+    IFS=':' read -ra ADDR <<< "$REGION"
+    CHROM=${ADDR[0]}
+    IFS='-' read -ra POS <<< "${ADDR[1]}"
+    START=${POS[0]}
+    END=${POS[1]}
+    REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/consensus_${CHROM}_${START}_${END}.fasta"
+    > ${REGION_FASTA_FILE} # Clear the file if exists or create it if not
+done
 
 # Iterate over individual VCF files to create consensus sequences
 for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
@@ -102,18 +115,19 @@ for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
         REGION_STR="${CHROM}:${START}-${END}"
         REGION_FILE="${OUTPUT_DIR}/${CHROM}_${START}_${END}.fasta"
         TEMP_VCF="${OUTPUT_DIR}/${STRAIN_NAME}_${CHROM}_${START}_${END}.vcf"
-        CONSENSUS_FILE="${OUTPUT_DIR}/consensus_${STRAIN_NAME}_${CHROM}_${START}_${END}.fasta"
+        REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/consensus_${CHROM}_${START}_${END}.fasta"
 
         # Filter VCF for the specific region
         bcftools view -Oz -o ${TEMP_VCF}.gz -r ${REGION_STR} ${VCF_FILE}
         bcftools index ${TEMP_VCF}.gz
 
-        # Use bcftools consensus to apply the VCF variants to the reference sequence
-        bcftools consensus -f ${REGION_FILE} -o ${CONSENSUS_FILE} ${TEMP_VCF}.gz
+        # Use bcftools consensus to apply the VCF variants to the reference sequence and append to region-specific FASTA
+        bcftools consensus -f ${REGION_FILE} -o temp_consensus.fasta ${TEMP_VCF}.gz
+        cat temp_consensus.fasta >> ${REGION_FASTA_FILE}
 
         # Clean up temporary files
-        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi
+        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi temp_consensus.fasta
     done
 done
 
-echo "Consensus sequence extraction for individual strains completed."
+echo "Consensus sequence compilation for individual strains completed."
