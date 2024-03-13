@@ -12,9 +12,10 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
-# Load modules
-module load bcftools/1.9
-module load bedtools/2.29.2
+# Load required modules
+module load BCFtools/1.9-GCC-8.2.0-2.31.1
+module load BEDTools/2.28.0-GCC-8.2.0-2.31.1
+
 
 # Define variables
 REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
