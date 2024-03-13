@@ -44,7 +44,7 @@ done
 echo "Reference sequence extraction completed."
 
 # Define SNP positions
-SNP_POSITIONS=("3:1981524" "7:2122986" "2:3164588")
+SNP_POSITIONS=("chr3:1981524" "chr7:2122986" "chr2:3164588")
 
 # Extract genotypes for each SNP position
 for SNP_POS in "${SNP_POSITIONS[@]}"; do
