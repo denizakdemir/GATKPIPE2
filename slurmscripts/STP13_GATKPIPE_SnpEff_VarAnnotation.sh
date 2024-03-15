@@ -76,8 +76,8 @@ echo "Indel annotation completed."
 
 
 # On the local machine, download the annotated VCF files using scp:
-#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE/5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf.gz  ~/Desktop
+#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE2/5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf.gz  ~/Desktop
 
 
-#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE/5_annotation/snpEff_indels/geno_filtered_indels.ann.vcf.gz  ~/Desktop
+#scp -P 33322 deniz@loginhpckairos.cbgp.upm.es:GenomicData/github/GATKPIPE2/5_annotation/snpEff_indels/geno_filtered_indels.ann.vcf.gz  ~/Desktop
 

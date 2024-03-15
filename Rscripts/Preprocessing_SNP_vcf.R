@@ -29,7 +29,7 @@ save(map_info, file = "map_info.RData")
 
 
 # Extracting data from VCF
-geno <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
+geno <- extract.gt(vcf, element = "GT", as.numeric = TRUE)
 
 save(geno, file = "genoGT.RData")
 
