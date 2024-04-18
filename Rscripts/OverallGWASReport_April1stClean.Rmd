@@ -1,0 +1,471 @@
+---
+title: "Genome-Wide Association Study (GWAS) Methodology"
+author: "Deniz Akdemir"
+date: "April 1rst, 2024"
+output:
+  pdf_document: default
+  html_document:
+    keep_md: true
+    toc: true
+  word_document: default  
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width=10, fig.height=6)
+```
+
+## Abstract
+
+This document outlines the methodology employed in our Genome-Wide Association Study (GWAS) to dissect the genetic architecture underlying both agronomic traits and a specialized set of "endophyte traits" in wheat. By utilizing a robust two-step process, our GWAS framework is designed to provide comprehensive insights essential for breeding programs focused on crop improvement.
+
+## Introduction
+
+The genetic exploration of phenotypic traits in crops like wheat is critical for the advancement of targeted breeding strategies. Our study leverages a GWAS framework to systematically investigate the genetic basis of diverse traits, including agronomic and unique "endophyte traits," aiming to enhance our understanding of wheat's genetic potential.
+
+## Methodology
+
+## Phenotypic Data Description for Endophyte Traits
+
+These experiments were designed to explore the interaction between wheat strains and two specific treatments of endophytes, identified as R3E3 and R3E5. The objective was to investigate the underlying genetic factors influencing wheat's response to these endophytes.
+
+### Experimental Design
+
+Our phenotypic dataset encapsulates various measurements captured from the interaction of Zymoseptoria tritici (Zt) strains with the endophytes across biological and technical replicates. The dataset columns are defined as follows:
+
+-   **Endophyte:** Represents the two treatments under investigation, R3E3 and R3E5.
+-   **Breplicate:** Indicates the biological replicate number.
+-   **Treplicate:** Denotes the technical replicate number.
+-   **Zt_Strain:** Specifies the Zymoseptoria tritici strain used in each experiment.
+-   **Area_endophyte:** Measures the area occupied by the endophyte within the Petri dish.
+-   **Area_inhibition:** Quantifies the area showing no growth of Zt, indicative of inhibition by the endophyte.
+-   **Ratio_inhibition:** Represents the normalized area of inhibition relative to the endophyte-occupied area.
+-   **Ratio_Scales1 and Ratio_Scales2:** Categorical scales for the inhibition ratio, with different granularity (every cm and every 0.5 cm, respectively).
+-   **Radius_inhibition:** Calculated as the halo radius minus the endophyte radius, based on perimeter measurements. This metric is considered reliable only for the R3E3 treatment due to its approximate circular shape, whereas R3E5 exhibits more irregular patterns.
+-   **Percentage_inhibition:** The percentage of the Petri dish area covered by the inhibition zone.
+-   **Melanization:** A binary indicator (1 for melanized, 0 for not melanized) reflecting whether the Zt strain exhibits melanization when in contact with the endophyte, compared to a control without endophyte.
+
+Additional notes include the identification of data points considered for exclusion due to less dense lawns (`Remove_astringent`) or difficulty in distinguishing the inhibition area (`Remove_loose`).
+
+## Phenotypic Data Description for Greenhouse Traits
+
+### Data Overview
+
+The greenhouse phenotypic dataset incorporates several key attributes:
+
+-   **Set:** Groups the data into distinct experimental sets for systematic analysis.
+-   **Plant:** A unique identifier for each plant subject to measurement.
+-   **Strain:** Indicates the specific strain of wheat under observation.
+-   **Leaf:** Assigns an identifier to individual leaves, allowing for detailed trait analysis at the foliar level.
+-   **Rep:** Represents the replication number, underlining the repeatability of measurements for robustness.
+-   **leafArea:** Quantifies the total area of the leaf in square centimeters, providing insights into growth patterns.
+-   **necrosisArea:** Measures the extent of necrosis, offering a direct indicator of disease impact or stress response.
+-   **PLACL:** Calculates the percentage of the leaf area affected by lesions, crucial for assessing disease severity.
+-   **pycnidiaCount:** Enumerates the total pycnidia present, reflecting fungal disease prevalence on the leaf surface.
+-   **meanPycnidiaArea:** Averages the area occupied by each pycnidium, indicating the extent of fungal colonization.
+-   **pycnidiaPerCm2Leaf:** Determines the density of pycnidia relative to the leaf area, useful for quantifying infection intensity.
+-   **pycnidiaPerCm2Lesion:** Assesses the concentration of pycnidia within lesioned areas, offering insights into disease progression.
+-   **pycnidiaGreyValue:** Assigns a grey value to the pycnidia, potentially correlating with spore viability or maturity.
+-   **Picture:** Provides photographic evidence of the leaf, essential for visual confirmation of phenotypic traits.
+-   **cm:** Denotes the height at which measurements were taken, ensuring consistency across data collection.
+
+Total Observations: The dataset comprises 9,619 individual leaf measurements, providing a robust foundation for our GWAS analysis
+
+Wheat Varieties: The dataset encapsulates the responses of 4 unique wheat varieties to pathogen exposure. This diversity is pivotal for understanding the genetic breadth of disease resistance and susceptibility across different wheat genotypes.
+
+Data Coverage: Phenotypic measurements span a total of 2 unique leaf identifiers (leave_id) across 2 experimental replications (REP). This comprehensive data collection ensures robustness and reliability in our phenotypic assessments.
+
+## Genomic Data Preprocessing and SNP Selection
+
+### SNP Preprocessing
+
+Following initial data acquisition, our genomic dataset underwent preprocessing using TASSEL. This step was essential for standardizing data formats and facilitating subsequent analyses. Through this preprocessing phase, we aimed to refine our dataset to include only the most informative genetic markers. To enhance the robustness of our GWAS, we applied stringent filtering criteria to our SNP dataset. Specifically, we filtered SNPs based on missingness and Minor Allele Frequency (MAF), setting thresholds at 0.3 and 0.1, respectively. Analysis was confined to genetic markers located on chromosomes 1 to 13. These criteria were designed to exclude SNPs with high levels of missing data and those with low allele frequencies, which might otherwise obscure true genetic associations due to insufficient statistical power or poor data quality.
+
+After applying our filtering criteria, our final SNP dataset comprised of 634156 SNPs. This refined set of genetic markers represents a comprehensive basis for our GWAS, capturing a wide array of genetic variations within the Z. tritici strains under study.
+
+### SNP Thinning for Enhanced Analysis
+
+In addition to analyzing the entire set of 634156 SNPs, we explored a reduced SNP dataset to further refine our genetic association mapping. This reduction involved selecting the SNP that exhibited the highest correlation with its neighbors within 100kb windows across the genome. This thinning approach aimed to distill our SNP dataset to those markers most representative of genetic variation in each genomic region, potentially enhancing the resolution and interpretability of our GWAS findings and increasing the statistical power to detect genetic associations. At the end of this filtering we have 167938 SNPs.
+
+### Population Structure Analysis in Zymoseptoria tritici Strains
+
+Understanding the population structure is crucial for our GWAS to minimize false associations due to stratification. In this analysis we use the entire set of 634156 SNPs to infer the population structure of Z. tritici strains. We employed principal component analysis (PCA) to visualize the genetic relationships among strains and identify potential subpopulations within our dataset. By incorporating PCA results as covariates in our GWAS models, we aim to account for population structure and reduce spurious associations.
+
+![](FiguresForReport/Combined_GenoMat.png)
+
+### Supplementary GWAS Analysis Informed by Structure Analysis
+
+To further refine our insights, an additional GWAS analysis was conducted, informed by a principal component (PC) analysis. This PC plot highlighted a distinct cluster of 10 genotypes, prompting their exclusion to assess the impact on the genetic associations identified. This targeted analysis enhances the accuracy of our conclusions, ensuring they reflect the comprehensive genetic diversity of wheat.
+
+## GWAS methods
+
+### Step 1: Estimation of Genomic Values Using Mixed-Effects Models
+
+#### Agronomic Traits
+
+For agronomic traits, the estimation of genomic values involves adjusting for known fixed effects and accounting for random effects associated with isolates. The linear mixed-effects models (LMMs) are specified as:
+
+$$
+y_{ijklm} = \mu + {\alpha_{rep}}_i + {\beta_{geno}}_j + {\gamma_{year}}_k + (1 | {isolate}_l) + \epsilon_{ijklm}
+$$
+
+Where:
+
+-   $y_{ijklm}$ represents the observed phenotype for the $i^{th}$ replicate, $j^{th}$ genotype, $k^{th}$ year, and $l^{th}$ isolate.
+-   $\mu$ is the overall mean phenotype.
+-   ${\alpha_{rep}}_i$, ${\beta_{geno}}_j$, and ${\gamma_{year}}_k$ are fixed effects for replicate, genotype, and year, respectively.
+-   $1 | {isolate}_l$ captures the random effects associated with the $l^{th}$ isolate.
+-   $\epsilon_{ijklm}$ is the residual error term, incorporating an additional index $m$ for more precise error modeling.
+
+#### Endophyte Traits
+
+For "endophyte traits", the model adjusts to reflect the experimental design, specified as:
+
+$$
+y_{ijkl} = \mu + {\alpha_{BReplicate}}_i + {\beta_{TReplicate}}_j + (1 | {isolate}_l) + \epsilon_{ijlm}
+$$
+
+Where:
+
+-   $y_{ijlm}$ denotes the observed value for each trait, such as Radius_inhibition, Area_Endophyte, etc.
+-   ${\alpha_{BReplicate}}_i$ and ${\beta_{TReplicate}}_j$ are the fixed effects for biological and technical replicates, respectively.
+-   $1 | {isolate}_l$ represents the random effects associated with the $l^{th}$ isolate.
+-   $\epsilon_{ijlm}$ is the residual error term for each observation.
+
+BLUPs for the random effects are then extracted for each phenotypic trait within both datasets.
+
+### Step 2: Genetic Association Mapping Using GAPIT
+
+This phase is identical for both sets of traits, employing GAPIT in R for association mapping to identify SNP markers associated with the adjusted phenotypic values. The analysis incorporates models like FarmCPU and BLINK, designed to manage the complexities of genomic data effectively. FarmCPU (Fixed and Random Model Circulating Probability Unification) significantly enhances our analysis by addressing computational challenges, optimizing marker selection, and refining adjustments for population structure and kinship. By replacing the REM with a more efficient FEM and utilizing Bayesian information criteria for model selection, BLINK addresses the limitations of previous GWAS methodologies.
+
+## GWAS results
+
+To present the GWAS results methodically and cohesively, the findings will be organized by phenotype experiment, followed by detailed results for each trait.
+
+### Agronomic Traits Analysis
+
+Manhattan and QQ Plots: For each agronomic trait, a Manhattan plot to visualize significant SNPs and a QQ plot to assess the overall significance level and potential inflation due to population structure. Significant Markers Table: A table listing all significant SNPs identified for each agronomic trait, including their chromosomal location, effect size, and p-value.
+
+Results for whaole data and aLso results are shown for each trait using the whole data or using the second and third leaves only.
+
+#### Analysis 1: Complete SNP Set (634156 SNPs), use both leaves 2 and 3
+
+
+```{r, echo=FALSE}
+source("https://raw.githubusercontent.com/YinLiLin/CMplot/master/R/CMplot.r")
+dfBLINK.BLUPPLACL<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27th/GAPIT.Association.GWAS_Results.BLINK.BLUPPLACL.csv")
+dfBLINK.BLUPpycnidiaCount<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27th/GAPIT.Association.GWAS_Results.BLINK.BLUPpycnidiaCount.csv")
+dfBLINK.BLUPpycnidiaPerCm2Leaf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27th/GAPIT.Association.GWAS_Results.BLINK.BLUPpycnidiaPerCm2Leaf.csv")
+dfBLINK.BLUPpycnidiaGreyValue<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27th/GAPIT.Association.GWAS_Results.BLINK.BLUPpycnidiaGreyValue.csv")
+
+dfBLINK.BLUPmeanPycnidiaArea<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27th/GAPIT.Association.GWAS_Results.BLINK.BLUPmeanPycnidiaArea.csv")
+GWASDF<-data.frame(SNP=dfBLINK.BLUPPLACL$SNP,Chromosome=dfBLINK.BLUPPLACL$Chr,Position=dfBLINK.BLUPPLACL$Pos,PLACL=dfBLINK.BLUPPLACL$P.value,pycnidiaCount=dfBLINK.BLUPpycnidiaCount$P.value,pycnidiaPerCm2Leaf=dfBLINK.BLUPpycnidiaPerCm2Leaf$P.value,pycnidiaGreyValue=dfBLINK.BLUPpycnidiaGreyValue$P.value)
+
+
+GWASDFSel<-data.frame(SNP=dfBLINK.BLUPPLACL$SNP,Chromosome=dfBLINK.BLUPPLACL$Chr,Position=dfBLINK.BLUPPLACL$Pos, pycnidiaCount=dfBLINK.BLUPpycnidiaCount$P.value,meanPycnidiaArea=dfBLINK.BLUPmeanPycnidiaArea$P.value)
+```
+
+
+
+```{r, echo=FALSE}
+tabledf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27th/GAPIT.Association.Filter_GWAS_results.csv")
+tabledf<-tabledf[order(tabledf$P.value, decreasing = FALSE),]
+knitr::kable(tabledf)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="d",bin.size=1e4,chr.den.col=c("darkgreen", "yellow", "red"),file="jpg",file.name="Marker_Density.AllM",dpi=600,
+    main="Marker density Plot",file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel, plot.type="m", col=c("grey30","grey60"), LOG10=TRUE, ylim=c(2,12), threshold=c(.05/nrow(GWASDFSel),.1/nrow(GWASDFSel)),
+        threshold.lty=c(1,2), threshold.lwd=c(1,1), threshold.col=c("black","grey"), amplify=TRUE,
+        chr.den.col=NULL, signal.col=c("red","green"), signal.cex=c(1.5,1.5),signal.pch=c(19,19),
+        file="jpg",file.name="",dpi=600,file.output=FALSE,verbose=TRUE,width=14,height=6)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="q",box=FALSE,file="jpg",file.name="",dpi=600,
+    conf.int=TRUE,conf.int.col=NULL,threshold.col="red",threshold.lty=2,
+    file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+#### Analysis 2: Thinned SNP Set (167938 SNPs), use both leaves 2 and 3
+
+
+```{r, echo=FALSE}
+tabledf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnpsWithCor/GAPIT.Association.Filter_GWAS_results.csv")
+tabledf<-tabledf[order(tabledf$P.value, decreasing = FALSE),]
+knitr::kable(tabledf)
+```
+
+```{r, echo=FALSE}
+dfBLINK.BLUPPLACL<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnps/GAPIT.Association.GWAS_Results.BLINK.BLUPPLACL.csv")
+dfBLINK.BLUPpycnidiaCount<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnps/GAPIT.Association.GWAS_Results.BLINK.BLUPpycnidiaCount.csv")
+dfBLINK.BLUPpycnidiaPerCm2Leaf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnps/GAPIT.Association.GWAS_Results.BLINK.BLUPpycnidiaPerCm2Leaf.csv")
+dfBLINK.BLUPpycnidiaPerCm2Lesion<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnps/GAPIT.Association.GWAS_Results.BLINK.BLUPpycnidiaPerCm2Lesion.csv")
+
+GWASDF<-data.frame(SNP=dfBLINK.BLUPPLACL$SNP,Chromosome=dfBLINK.BLUPPLACL$Chr,Position=dfBLINK.BLUPPLACL$Pos,PLACL=dfBLINK.BLUPPLACL$P.value,pycnidiaCount=dfBLINK.BLUPpycnidiaCount$P.value,pycnidiaPerCm2Leaf=dfBLINK.BLUPpycnidiaPerCm2Leaf$P.value,pycnidiaGreyValue=dfBLINK.BLUPpycnidiaPerCm2Lesion$P.value)
+GWASDFSel<-data.frame(SNP=dfBLINK.BLUPPLACL$SNP,Chromosome=dfBLINK.BLUPPLACL$Chr,Position=dfBLINK.BLUPPLACL$Pos,pycnidiaCount=dfBLINK.BLUPpycnidiaCount$P.value,pycnidiaPerCm2Leaf=dfBLINK.BLUPpycnidiaPerCm2Leaf$P.value,pycnidiaPerCm2Lesion=dfBLINK.BLUPpycnidiaPerCm2Lesion$P.value)
+
+```
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="d",bin.size=1e4,chr.den.col=c("darkgreen", "yellow", "red"),file="jpg",file.name="Marker_Density.AllM",dpi=600,
+    main="Marker density Plot",file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel, plot.type="m", col=c("grey30","grey60"), LOG10=TRUE, ylim=c(2,12), threshold=c(.05/nrow(GWASDFSel),.1/nrow(GWASDFSel)),
+        threshold.lty=c(1,2), threshold.lwd=c(1,1), threshold.col=c("black","grey"), amplify=TRUE,
+        chr.den.col=NULL, signal.col=c("red","green"), signal.cex=c(1.5,1.5),signal.pch=c(19,19),
+        file="jpg",file.name="",dpi=600,file.output=FALSE,verbose=TRUE,width=14,height=6)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="q",box=FALSE,file="jpg",file.name="",dpi=600,
+    conf.int=TRUE,conf.int.col=NULL,threshold.col="red",threshold.lty=2,
+    file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+#### Analysis 3: Thinned SNP Set (167938 SNPs), use Leaf 2 only
+
+
+```{r, echo=FALSE}
+tabledf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnpsWithCorLeaf2/GAPIT.Association.Filter_GWAS_results.csv")
+tabledf<-tabledf[order(tabledf$P.value, decreasing = FALSE),]
+knitr::kable(tabledf)
+```
+
+```{r, echo=FALSE}
+dfBLINK.BLUPPLACL<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnpsWithCorLeaf2/GAPIT.Association.GWAS_Results.BLINK.BLUPPLACL.csv")
+
+dfBLINK.BLUPpycnidiaPerCm2Leaf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnpsWithCorLeaf2/GAPIT.Association.GWAS_Results.BLINK.BLUPpycnidiaPerCm2Leaf.csv")
+
+GWASDFSel<-data.frame(SNP=dfBLINK.BLUPPLACL$SNP,Chromosome=dfBLINK.BLUPPLACL$Chr,Position=dfBLINK.BLUPPLACL$Pos,pycnidiaPerCm2Leaf=dfBLINK.BLUPpycnidiaPerCm2Leaf$P.value)
+
+```
+
+
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel, plot.type="m", col=c("grey30","grey60"), LOG10=TRUE, ylim=c(2,12), threshold=c(.05/nrow(GWASDFSel),.1/nrow(GWASDFSel)),
+        threshold.lty=c(1,2), threshold.lwd=c(1,1), threshold.col=c("black","grey"), amplify=TRUE,
+        chr.den.col=NULL, signal.col=c("red","green"), signal.cex=c(1.5,1.5),signal.pch=c(19,19),
+        file="jpg",file.name="",dpi=600,file.output=FALSE,verbose=TRUE,width=14,height=6)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="q",box=FALSE,file="jpg",file.name="",dpi=600,
+    conf.int=TRUE,conf.int.col=NULL,threshold.col="red",threshold.lty=2,
+    file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+
+#### Analysis 4: Thinned SNP Set (167938 SNPs), use Leaf 3 only
+
+
+```{r, echo=FALSE}
+tabledf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnpsWithCorLeaf3/GAPIT.Association.Filter_GWAS_results.csv")
+tabledf<-tabledf[order(tabledf$P.value, decreasing = FALSE),]
+knitr::kable(tabledf)
+```
+
+```{r, echo=FALSE}
+dfBLINK.BLUPPLACL<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforGreenHouseTraitsMarch27thThinnedSnpsWithCorLeaf3/GAPIT.Association.GWAS_Results.BLINK.BLUPPLACL.csv")
+
+
+
+GWASDFSel<-data.frame(SNP=dfBLINK.BLUPPLACL$SNP,Chromosome=dfBLINK.BLUPPLACL$Chr,Position=dfBLINK.BLUPPLACL$Pos,PLACL=dfBLINK.BLUPPLACL$P.value)
+
+```
+
+
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,type="p",plot.type="m",LOG10=TRUE, threshold=c(.05/nrow(GWASDFSel),.1/nrow(GWASDFSel)),file="jpg",file.name="",dpi=600,
+    file.output=FALSE,verbose=TRUE,width=14,height=6,chr.labels.angle=45)
+
+CMplot(GWASDFSel, plot.type="m", col=c("grey30","grey60"), LOG10=TRUE, ylim=c(2,12), threshold=c(.05/nrow(GWASDFSel),.1/nrow(GWASDFSel)),
+        threshold.lty=c(1,2), threshold.lwd=c(1,1), threshold.col=c("black","grey"), amplify=TRUE,
+        chr.den.col=NULL, signal.col=c("red","green"), signal.cex=c(1.5,1.5),signal.pch=c(19,19),
+        file="jpg",file.name="",dpi=600,file.output=FALSE,verbose=TRUE,width=14,height=6)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="q",box=FALSE,file="jpg",file.name="",dpi=600,
+    conf.int=TRUE,conf.int.col=NULL,threshold.col="red",threshold.lty=2,
+    file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+### Endophyte Traits Analysis
+
+
+#### Analysis 1: Complete SNP Set (634156 SNPs)
+
+
+```{r, echo=FALSE}
+source("https://raw.githubusercontent.com/YinLiLin/CMplot/master/R/CMplot.r")
+dfBLINK.BLUPArea_inhibition<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27th/GAPIT.Association.GWAS_Results.BLINK.BLUPArea_inhibitionR3E3.csv")
+
+dfBLINK.BLUPPercentage_inhibition<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27th/GAPIT.Association.GWAS_Results.BLINK.BLUPPercentage_inhibitionR3E3.csv")
+
+
+
+
+GWASDFSel<-data.frame(SNP=dfBLINK.BLUPArea_inhibition$SNP,Chromosome=dfBLINK.BLUPArea_inhibition$Chr,Position=dfBLINK.BLUPArea_inhibition$Pos, Area_inhibition=dfBLINK.BLUPArea_inhibition$P.value,Percentage_inhibition=dfBLINK.BLUPPercentage_inhibition$P.value)
+```
+
+
+
+```{r, echo=FALSE}
+tabledf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27th/GAPIT.Association.Filter_GWAS_results.csv")
+tabledf<-tabledf[order(tabledf$P.value, decreasing = FALSE),]
+knitr::kable(tabledf)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="d",bin.size=1e4,chr.den.col=c("darkgreen", "yellow", "red"),file="jpg",file.name="Marker_Density.AllM",dpi=600,
+    main="Marker density Plot",file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel, plot.type="m", col=c("grey30","grey60"), LOG10=TRUE, ylim=c(2,12), threshold=c(.05/nrow(GWASDFSel),.1/nrow(GWASDFSel)),
+        threshold.lty=c(1,2), threshold.lwd=c(1,1), threshold.col=c("black","grey"), amplify=TRUE,
+        chr.den.col=NULL, signal.col=c("red","green"), signal.cex=c(1.5,1.5),signal.pch=c(19,19),
+        file="jpg",file.name="",dpi=600,file.output=FALSE,verbose=TRUE,width=14,height=6)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="q",box=FALSE,file="jpg",file.name="",dpi=600,
+    conf.int=TRUE,conf.int.col=NULL,threshold.col="red",threshold.lty=2,
+    file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+#### Analysis 2: Filtered SNP Set (167938 SNPs)
+
+
+```{r, echo=FALSE}
+source("https://raw.githubusercontent.com/YinLiLin/CMplot/master/R/CMplot.r")
+dfBLINK.BLUPArea_inhibition<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27thThinnedSnpsWithCor/GAPIT.Association.GWAS_Results.BLINK.BLUPArea_inhibitionR3E3.csv")
+
+dfBLINK.BLUPPercentage_inhibition<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27thThinnedSnpsWithCor/GAPIT.Association.GWAS_Results.BLINK.BLUPPercentage_inhibitionR3E3.csv")
+
+
+GWASDFSel<-data.frame(SNP=dfBLINK.BLUPArea_inhibition$SNP,Chromosome=dfBLINK.BLUPArea_inhibition$Chr,Position=dfBLINK.BLUPArea_inhibition$Pos, Area_inhibition=dfBLINK.BLUPArea_inhibition$P.value,Percentage_inhibition=dfBLINK.BLUPPercentage_inhibition$P.value)
+```
+
+
+
+```{r, echo=FALSE}
+tabledf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27thThinnedSnpsWithCor/GAPIT.Association.Filter_GWAS_results.csv")
+tabledf<-tabledf[order(tabledf$P.value, decreasing = FALSE),]
+knitr::kable(tabledf)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="d",bin.size=1e4,chr.den.col=c("darkgreen", "yellow", "red"),file="jpg",file.name="Marker_Density.AllM",dpi=600,
+    main="Marker density Plot",file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel, plot.type="m", col=c("grey30","grey60"), LOG10=TRUE, ylim=c(2,12), threshold=c(.05/nrow(GWASDFSel),.1/nrow(GWASDFSel)),
+        threshold.lty=c(1,2), threshold.lwd=c(1,1), threshold.col=c("black","grey"), amplify=TRUE,
+        chr.den.col=NULL, signal.col=c("red","green"), signal.cex=c(1.5,1.5),signal.pch=c(19,19),
+        file="jpg",file.name="",dpi=600,file.output=FALSE,verbose=TRUE,width=14,height=6)
+```
+
+
+```{r, echo=FALSE}
+CMplot(GWASDFSel,plot.type="q",box=FALSE,file="jpg",file.name="",dpi=600,
+    conf.int=TRUE,conf.int.col=NULL,threshold.col="red",threshold.lty=2,
+    file.output=FALSE,verbose=TRUE,width=10,height=8)
+```
+
+
+
+![FiguresForReport/BLUPPercentage_inhibitionR3E3_vs_SNP_S12_1035503.png](FiguresForReport/BLUPPercentage_inhibitionR3E3_vs_SNP_S12_1035503.png)
+
+![FiguresForReport/BLUPArea_inhibitionR3E3_vs_SNP_S2_3164606.png](FiguresForReport/BLUPArea_inhibitionR3E3_vs_SNP_S2_3164606.png)
+
+![FiguresForReport/BLUPPercentage_inhibitionR3E3_vs_SNP_S2_3164606.png](FiguresForReport/BLUPPercentage_inhibitionR3E3_vs_SNP_S2_3164606.png)
+
+
+```{r, echo=FALSE}
+snpGRP<-read.csv("FiguresForReport/SNPGrouping.csv")
+snpGRP[,-1]<-round(snpGRP[,-1], 2)/2
+knitr::kable(snpGRP)
+```
+
+#### Analysis 3: Filtered SNP Set (167938 SNPs) and filtered genotypes
+
+
+```{r, echo=FALSE}
+source("https://raw.githubusercontent.com/YinLiLin/CMplot/master/R/CMplot.r")
+dfBLINK.BLUPArea_inhibition<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27thThinnedSnpsWithCor/GAPIT.Association.GWAS_Results.BLINK.BLUPArea_inhibitionR3E3.csv")
+
+dfBLINK.BLUPPercentage_inhibition<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27thThinnedSnpsWithCor/GAPIT.Association.GWAS_Results.BLINK.BLUPPercentage_inhibitionR3E3.csv")
+
+
+GWASDFSel<-data.frame(SNP=dfBLINK.BLUPArea_inhibition$SNP,Chromosome=dfBLINK.BLUPArea_inhibition$Chr,Position=dfBLINK.BLUPArea_inhibition$Pos, Area_inhibition=dfBLINK.BLUPArea_inhibition$P.value,Percentage_inhibition=dfBLINK.BLUPPercentage_inhibition$P.value)
+```
+
+
+
+```{r, echo=FALSE}
+tabledf<-read.csv("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GWASforPilarTraitsMarch27thThinnedSnpsWithCorwoOutliers/GAPIT.Association.Filter_GWAS_results.csv")
+tabledf<-tabledf[order(tabledf$P.value, decreasing = FALSE),]
+knitr::kable(tabledf)
+```
+
+
+
+
+## Conclusion
+
+Our GWAS methodology, addressing both agronomic and "endophyte traits," employs a rigorous analytical framework to uncover the genetic underpinnings of phenotypic variation. 
+
+
+A brief synthesis of how the identified genetic markers contribute to our understanding of wheat's phenotypic variation and implications for breeding strategies.
+
+
+# References
