@@ -14,7 +14,7 @@ source("http://zzlab.net/GAPIT/gapit_functions.txt")  # GAPIT functions
 # Read numeric genotypes file
 geno <- fread("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/ProcessedVCFs/SNPGENOTASSELOUTPUT/6_tassel_analysis/numeric_allele_counts_filtered.txt", skip = 1, header = TRUE, sep = "\t", na.strings = c("", "NA",0.5,"0.5"))
 geno <- as.data.frame(geno)
-
+gc()
 # Remove duplicate Genotypes
 colnames(geno)[1]<-"Taxa"
 namesGeno<-geno$Taxa
@@ -49,6 +49,7 @@ rownames(geno)
 
 genoImp<-rrBLUP::A.mat(geno, impute.method = "mean", return.imputed = TRUE, min.MAF = .1, max.missing = .3)$imputed
 
+gc()
 
 svdG<-svd(scale(genoImp, scale=FALSE, center=TRUE), nu=5,nv=5)
 pcs<-scale(genoImp, scale=FALSE, center=TRUE)%*%svdG$v
@@ -141,8 +142,11 @@ SNPMAP<- data.frame(
 SNPMAP<-SNPMAP[SNPMAP$rs%in%colnames(geno),]
 dim(SNPMAP)
 
+gc()
+
 geno <- data.frame(marker=SNPMAP$rs,chrom=SNPMAP$chrom,pos=SNPMAP$pos,t(geno))
 
+gc()
 geno[1:5,1:5]
 
 colnames(PhenoGWAS)[1]<-"line"
@@ -169,7 +173,7 @@ rownames(GenoMat)<-NULL
 # make taxa the first column
 GenoMat<-GenoMat[,c(ncol(GenoMat), 1:(ncol(GenoMat)-1))]
 
-
+gc()
 GenoMat$Taxa<-gsub("\\.","-", GenoMat$Taxa)
 GenoMat<-GenoMat[GenoMat$Taxa%in%filtered_pcs$Taxa,]
 GenoMat<-GenoMat[match(filtered_pcs$Taxa,GenoMat$Taxa),]
@@ -187,3 +191,143 @@ new_dir <- "DataforPillar"
 if (!dir.exists(new_dir)) dir.create(new_dir, recursive = TRUE)
 save(PhenoGWASR3E3, PhenoGWASR3E5, PhenoGWAS, GenoMat, file = paste0(new_dir, "/DataforPillar.RData"))
 
+rm(list=ls())
+gc()
+###############################################
+
+setwd("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts")
+
+# Load necessary libraries
+if (!require(pacman)) install.packages("pacman")
+pacman::p_load(
+  tidyverse, data.table, ggplot2, dplyr, stringr, 
+  genetics, scatterplot3d, snpStats, rtracklayer, 
+  GenomicRanges, IRanges, AssocTests, BiocManager, lme4
+)
+
+# Load external GAPIT functions
+source("http://zzlab.net/GAPIT/gapit_functions.txt")
+
+# Load data from the previous preparation stage
+load("DataforPillar/DataforPillar.RData")
+
+# Ensure phenotype data and genotype data Taxa columns are aligned
+GenoMat$Taxa <- as.character(GenoMat$Taxa)
+PhenoGWAS$line <- as.character(PhenoGWAS$line)
+PhenoGWASR3E3$line <- as.character(PhenoGWASR3E3$line)
+PhenoGWASR3E5$line <- as.character(PhenoGWASR3E5$line)
+
+intersect(PhenoGWAS$line, GenoMat$Taxa)
+setdiff(PhenoGWAS$line, GenoMat$Taxa)
+setdiff(GenoMat$Taxa,PhenoGWAS$line)
+
+
+length(unique(PhenoGWAS$line))
+intersect(PhenoGWAS$line, GenoMat$Taxa)
+setdiff(PhenoGWAS$line, GenoMat$Taxa)
+setdiff(GenoMat$Taxa,PhenoGWAS$line)
+
+
+# Assuming GenoMat and PhenoGWAS are correctly matched and prepped
+# Perform SNP thinning based on correlation
+library(pbapply)
+library(dplyr)
+
+GenoMat[1:5, 1:5]
+GenoImp<-GenoMat[,-1]-1
+rownames(GenoImp)<-GenoMat$Taxa
+gc()
+GenoImp<-rrBLUP::A.mat(GenoImp, impute.method = "mean", return.imputed = TRUE, min.MAF = .1, max.missing = .3)$imputed+1
+# read snp_genotypeSummary3.txt data 
+SNPSummary<-read.table("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/ProcessedVCFs/SNPGENOTASSELOUTPUT/6_tassel_analysis/snp_genotypeSummary3.txt", header = TRUE, sep = "\t", as.is = TRUE, skip=0)
+SNPSummary[1:5,]
+SNPSummary<-SNPSummary[SNPSummary$Site.Name %in% colnames(GenoImp),]
+
+Kmat<-rrBLUP::A.mat(GenoImp-1, return.imputed = FALSE)
+
+# Now a map file 
+SNPMAP<- data.frame(
+  Name = SNPSummary$Site.Name,
+  Chromosome = SNPSummary$Chromosome,
+  Position = SNPSummary$Physical.Position
+)
+library(dplyr)
+library(pbapply)  # For progress bars
+dim(SNPMAP)
+
+find_highest_corr_snp <- function(df, GenoMat, distance) {
+  # Sort the dataframe by chromosome and position
+  df <- df %>%
+    arrange(Chromosome, Position)
+
+  # Split the dataframe by chromosome
+  chromosome_list <- split(df, df$Chromosome)
+
+  # Function to process each chromosome
+  process_chromosome <- function(chromo_df) {
+    # Create regions within the chromosome
+    chromo_df <- chromo_df %>%
+      mutate(region = floor(Position / distance))
+
+    # Split the chromosome dataframe by region
+    region_list <- split(chromo_df, chromo_df$region)
+
+    # Function to process each region
+    process_region <- function(region_df) {
+      # Filter SNPs that are present in the GenoMat column names
+      valid_snp_names <- region_df$Name[region_df$Name %in% colnames(GenoMat)]
+      if (length(valid_snp_names) < 2) {
+        return(region_df[1, ])
+      }
+      region_data <- GenoMat[, valid_snp_names, drop = FALSE]
+      corr_matrix <- cor(region_data, use = "pairwise.complete.obs")
+      if (all(is.na(corr_matrix))) {
+        return(region_df[1, ])
+      }
+      avg_corr <- colMeans(corr_matrix, na.rm = TRUE)
+      highest_corr_snp <- names(which.max(avg_corr))
+      return(region_df %>% filter(Name == highest_corr_snp))
+    }
+
+    # Apply the process_region to each region and combine results
+    highest_corr_snps_list <- pbapply::pblapply(region_list, process_region)
+    highest_corr_snps <- bind_rows(highest_corr_snps_list)
+    return(highest_corr_snps)
+  }
+
+  # Apply the process_chromosome to each chromosome and combine results
+  all_highest_corr_snps <- lapply(chromosome_list, process_chromosome)
+  final_result <- bind_rows(all_highest_corr_snps)
+  return(final_result)
+}
+
+
+# Assuming SNPMAP and GenoMat are already loaded
+# Apply thinning function to your mapping dataframe for the first 13 chromosomes
+mapping13 <- SNPMAP %>% 
+  filter(Chromosome <= 13)
+
+# Assuming GenoMat is appropriately indexed or adjusted for the data subset
+GenoMat13 <- GenoImp[, mapping13$Name]
+
+# Applying the function with a progress bar
+mapping_highest_corr <- find_highest_corr_snp(mapping13, GenoMat13, 200) # Adjust the distance as neededGenoMat13_thinned <- GenoMat13[, c("Taxa", mapping13_thinned$Name)]
+
+mapping_highest_corr<-na.omit(mapping_highest_corr)
+
+dim(mapping_highest_corr)
+
+# Filter the genotype matrix based on the selected SNPs
+GenoMat13_thinned <- GenoMat13[, mapping_highest_corr$Name]
+dim(GenoMat13_thinned)
+# filter mapping13
+mapping13_thinned <- mapping13[mapping13$Name %in% colnames(GenoMat13_thinned),]
+dim(mapping13_thinned)
+##########################save the data neede for GWAS
+save(PhenoGWAS,PhenoGWASR3E3,PhenoGWASR3E5,GenoMat13_thinned,mapping13_thinned,file="DataforPillar/DataforPillarGWAS.RData")
+
+# calculate the Kmat
+Kmat<-rrBLUP::A.mat(GenoMat13_thinned[, -1]-1, min.MAF = .1, max.missing = .3)
+
+# save Kmat, GenoMat13_thinned, mapping13_thinned 
+save(Kmat, GenoMat13_thinned, mapping13_thinned, file = "DataforPillar/GenoDataSeptoria100.RData")
