@@ -37,7 +37,11 @@ str(Pheno12cmImp)
 Pheno12cmImpAgg<-aggregate(Pheno12cmImp[,NumVars], by=list(Plant=Pheno12cmImp$Plant, Strain=Pheno12cmImp$Strain), FUN=mean)
 
 Pheno17cmImpAgg<-aggregate(Pheno17cmImp[,NumVars], by=list(Plant=Pheno17cmImp$Plant, Strain=Pheno17cmImp$Strain), FUN=mean)
-#############################################
+dim(Pheno12cmImpAgg)
+dim(Pheno17cmImpAgg)
+
+hist(Pheno17cmImpAgg$PLACL)
+############################################
 
 # we will define cross validation startegies.
 # the experiment consists of 4 mixes and 2000 wheat lines
@@ -47,14 +51,7 @@ Pheno17cmImpAgg<-aggregate(Pheno17cmImp[,NumVars], by=list(Plant=Pheno17cmImp$Pl
 # 3- Leave one mix out for validation and 20% of the wheat lines out for validation
 # this will be repeated 10 times for each strategy
 
-#   Set   Plant      Strain Leaf  Rep   leafArea  necrosisArea PLACL pycnidiaCount
-#   <chr> <fct>      <fct>  <chr> <chr> <chr>     <chr>        <chr> <chr>        
-# 1 set1  PyrSep.204 mix1   1     R1    285.7849… 80.97309685… 28.3… 40           
-# 2 set1  PyrSep.204 mix1   2     R1    334.9928… 110.8870776  33.1… 44           
-# 3 set1  PyrSep.204 mix1   3     R1    348.6097… 181.0699815… 51.9… 88           
-# 4 set1  PyrSep.162 mix1   1     R1    226.0458… 39.85376125… 17.6… 16           
-# 5 set1  PyrSep.162 mix1   2     R1    337.0338… 89.33615482… 26.5… 28           
-# 6 set1  PyrSep.162 mix1   3     R1    306.5287… 57.72759911  18.8… 35
+
 KmatSepMixDiag<-diag(nrow(KmatSepMix))
 rownames(KmatSepMixDiag)<-colnames(KmatSepMixDiag)<-rownames(KmatSepMix)
 KmatWheatDiag<-diag(nrow(KmatWheat))
@@ -365,8 +362,98 @@ runGenomicPredictionStrategy3 <- function(traitName, kinshipMatrixWheat, kinship
     return(list(fm12 = fm12, fm17 = fm17, fm12_interaction = fm12_interaction, fm17_interaction = fm17_interaction, TestMix = testMix, TestWheat = testWheat))
 }
 
+evaluateModelPredictions3<-function(models, phenotypeData12, phenotypeData17, traitName){
+    predictions12 <- predict(models$fm12)
+    predictions17 <- predict(models$fm17)
+    predictions12_interaction <- predict(models$fm12_interaction)
+    predictions17_interaction <- predict(models$fm17_interaction)
+    testLocations12 <- phenotypeData12$Strain %in% models$TestMix
+    testLocations17 <- phenotypeData17$Strain %in% models$TestMix
+    testLocations12Wheat<-phenotypeData12$Plant %in% models$TestWheat
+    testLocations17Wheat<-phenotypeData17$Plant %in% models$TestWheat
 
+
+    testLocations12<-testLocations12 & testLocations12Wheat
+    testLocations17<-testLocations17 & testLocations17Wheat
+
+    phenotypeTest12 <- phenotypeData12[testLocations12,]
+    phenotypeTest17 <- phenotypeData17[testLocations17,]
+    phenotypeTest12Trait<-phenotypeTest12[[traitName]]
+    phenotypeTest17Trait<-phenotypeTest17[[traitName]]
+    correlation12 <- cor(predictions12[testLocations12], phenotypeTest12Trait)
+    correlation17 <- cor(predictions17[testLocations17], phenotypeTest17Trait)
+    correlation12_interaction <- cor(predictions12_interaction[testLocations12], phenotypeTest12Trait)
+    correlation17_interaction <- cor(predictions17_interaction[testLocations17], phenotypeTest17Trait)
+    
+    # Plotting results
+    plot(predictions12_interaction[testLocations12], phenotypeTest12Trait, col = phenotypeTest12$Plant)
+    plot(predictions17_interaction[testLocations17], phenotypeTest17Trait, col = phenotypeTest17$Plant)
+
+    correlationResults <- list(
+        Correlation12 = correlation12, 
+        Correlation17 = correlation17, 
+        Correlation12Interaction = correlation12_interaction, 
+        Correlation17Interaction = correlation17_interaction
+    )
+
+    return(list(CorrelationResults = correlationResults))
+}
 testWheat<-sample(rownames(KmatWheat), ceiling(0.2*nrow(KmatWheat)))
 TS3Models<-runGenomicPredictionStrategy3("PLACL", KmatWheatDiag, KmatSepMixDiag, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix1", testWheat = testWheat)
 
-outcor<-evaluateModelPredictions2(TS3Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
+outcor<-evaluateModelPredictions3(TS3Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
+outcor
+
+
+TS3Models<-runGenomicPredictionStrategy3("PLACL", KmatWheat, KmatSepMix, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix1", testWheat = testWheat)
+
+outcor<-evaluateModelPredictions3(TS3Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
+outcor
+
+#############################################
+
+# for loop to repeat the experiment 10 times
+
+# Define the kinship matrices to be used
+kinshipWheat <- list(Normal = KmatWheat, Diagonal = KmatWheatDiag)
+kinshipMix <- list(Normal = KmatSepMix, Diagonal = KmatSepMixDiag)
+
+# Store results in a structured way
+allResults <- list()
+
+# Loop over 10 iterations
+for (iteration in 1:10) {
+  # Sample 20% of wheat lines randomly
+  testWheatLines <- sample(rownames(KmatWheat), ceiling(0.2 * nrow(KmatWheat)))
+  
+  # Loop over each combination of kinship matrices
+  for (wheatKey in names(kinshipWheat)) {
+    for (mixKey in names(kinshipMix)) {
+      # Store results for each iteration and matrix combination
+      scenarioResults <- list()
+
+      # Scenario 1: Leave 20% of wheat lines out for validation
+      ST1Models <- runGenomicPredictionStrategy("PLACL", kinshipWheat[[wheatKey]], kinshipMix[[mixKey]], Pheno12cmImpAgg, Pheno17cmImpAgg)
+      scenarioResults$Scenario1 <- evaluateModelPredictions(ST1Models, Pheno12cmImpAgg, Pheno17cmImpAgg, "PLACL")
+      
+      # Scenario 2: Leave one mix out for validation
+      for (mix in unique(Pheno12cmImpAgg$Strain)) {
+        ST2Models <- runGenomicPredictionStrategy2("PLACL", kinshipWheat[[wheatKey]], kinshipMix[[mixKey]], Pheno12cmImpAgg, Pheno17cmImpAgg, mix)
+        scenarioResults[[paste("Scenario2", mix)]] <- evaluateModelPredictions2(ST2Models, Pheno12cmImpAgg, Pheno17cmImpAgg, "PLACL")
+      }
+      
+      # Scenario 3: Leave one mix out and 20% of the wheat lines out for validation
+      
+      for (mix in unique(Pheno12cmImpAgg$Strain)) {
+        ST3Models <- runGenomicPredictionStrategy3("PLACL", kinshipWheat[[wheatKey]], kinshipMix[[mixKey]], Pheno12cmImpAgg, Pheno17cmImpAgg, mix, testWheatLines)
+        scenarioResults[[paste("Scenario3", mix)]] <- evaluateModelPredictions3(ST3Models, Pheno12cmImpAgg, Pheno17cmImpAgg, "PLACL")
+      }
+      
+      # Store all results for this combination of matrices
+      allResults[[paste("Iteration", iteration, "Wheat", wheatKey, "Mix", mixKey)]] <- scenarioResults
+    }
+  }
+}
+
+# Save all results to a file
+save(allResults, file = "AllGenomicPredictionResults.RData")

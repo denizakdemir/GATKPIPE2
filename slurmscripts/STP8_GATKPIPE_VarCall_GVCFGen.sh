@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --time=48:00:00
+#SBATCH --time=72:00:00
 #SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
@@ -25,14 +25,17 @@ mkdir -p ../GVCF
 MAX_JOBS=30  # Control the maximum number of parallel jobs
 running_jobs=0
 
-# GVCF generation
+# Generate GVCF files
 echo "Starting GVCF generation..."
 for i in *_recal.bam; do
   base=$(basename ${i} _recal.bam)
   output_file="../GVCF/${base}.g.vcf.gz"
+  output_file_tbi="../GVCF/${base}.g.vcf.gz.tbi"
+  output_file_sorted="../GVCF/${base}_sorted.g.vcf.gz"
+  output_file_sorted_tbi="../GVCF/${base}_sorted.g.vcf.gz.tbi"
 
-  # Check if the output file already exists
-  if [ ! -f "$output_file" ]; then
+  # Check if the output files already exist
+  if [ ! -f "$output_file" ] && [ ! -f "$output_file_tbi" ] && [ ! -f "$output_file_sorted" ] && [ ! -f "$output_file_sorted_tbi" ]; then
     echo "Processing file: $i"
 
     gatk --java-options "-Xmx4g" HaplotypeCaller \
@@ -55,6 +58,7 @@ for i in *_recal.bam; do
   fi
 done
 wait
+
 
 echo "GVCF generation completed."
 
