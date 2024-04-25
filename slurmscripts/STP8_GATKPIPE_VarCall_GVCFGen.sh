@@ -35,7 +35,7 @@ for i in *_recal.bam; do
   output_file_sorted_tbi="../GVCF/${base}_sorted.g.vcf.gz.tbi"
 
   # Check if the output files already exist
-  if [ ! -f "$output_file" ] && [ ! -f "$output_file_tbi" ] && [ ! -f "$output_file_sorted" ] && [ ! -f "$output_file_sorted_tbi" ]; then
+  if [ ! -f "$output_file" ] || [ ! -f "$output_file_tbi" ] || [ ! -f "$output_file_sorted" ] || [ ! -f "$output_file_sorted_tbi" ]; then
     echo "Processing file: $i"
 
     gatk --java-options "-Xmx4g" HaplotypeCaller \
