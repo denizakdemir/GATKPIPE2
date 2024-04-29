@@ -176,7 +176,6 @@ listData17 <- split(data17, data17$Strain)
 # Calculate correlation for each strain
 Cor12withinStrain <- lapply(listData12, function(df) cor(df$predictions, df$traits, use = "complete.obs"))
 Cor17withinStrain <- lapply(listData17, function(df) cor(df$predictions, df$traits, use = "complete.obs"))
-
     correlationResults$Cor12withinStrain<-Cor12withinStrain
     correlationResults$Cor17withinStrain<-Cor17withinStrain
     return(list(CorrelationResults = correlationResults, PlotsResults = plotsResults))
@@ -457,3 +456,31 @@ for (iteration in 1:10) {
 
 # Save all results to a file
 save(allResults, file = "AllGenomicPredictionResults.RData")
+
+
+################## Results Gathering
+# Load the results
+setwd("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GenomicPrediction")
+
+load("AllGenomicPredictionResults.RData")
+
+
+# Extract the correlation results for Scenario 1
+# only within mixes
+
+correlationsScenario1 <- lapply(allResults, function(iterationResults) {
+  scenario1Results <- iterationResults$Scenario1
+  cor12withinStrain<-scenario1Results$CorrelationResults$Cor12withinStrain
+  cor17withinStrain<-scenario1Results$CorrelationResults$Cor17withinStrain
+  return(list(Cor12withinStrain=cor12withinStrain, Cor17withinStrain=cor17withinStrain))
+})
+
+# convert into data frame
+correlationsScenario1DF <- do.call(rbind, correlationsScenario1)
+correlationsScenario1DF <- as.data.frame(correlationsScenario1DF)
+correlationsScenario1DF$Iteration <- 1:nrow(correlationsScenario1DF)
+correlationsScenario1DF$experiment<-rownames(correlationsScenario1DF)
+# table of mean correlations and standard errors
+colnames(correlationsScenario1DF)
+meanCorrelations <- aggregate(. ~ Iteration+experiment, data = correlationsScenario1DF, FUN = function(x) c(Mean = mean(x), SE = sd(x) / sqrt(length(x))))
+meanCorrelations
