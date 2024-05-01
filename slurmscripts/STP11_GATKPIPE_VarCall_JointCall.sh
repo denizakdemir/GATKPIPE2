@@ -2,12 +2,12 @@
 #SBATCH --job-name=GenomicAnalysis
 #SBATCH --output=GenomicAnalysis_%j.log
 #SBATCH --error=GenomicAnalysis_%j.err
-#SBATCH --partition=medium
+#SBATCH --partition=long
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --time=24:00:00
-#SBATCH --mem=64G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=120:00:00
+#SBATCH --mem=32G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
