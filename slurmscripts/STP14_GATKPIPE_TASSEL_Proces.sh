@@ -13,7 +13,7 @@
 
 # Load required modules
 module load TASSEL/5.2.86-Java-1.8.0_212
-module load bcftools
+module load BCFtools/1.9-GCC-8.2.0-2.31.1
 
 # Increase TASSEL's memory allocation
 export _JAVA_OPTIONS="-Xms256m -Xmx60g"
