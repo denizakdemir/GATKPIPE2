@@ -1,10 +1,16 @@
 setwd("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/Rscripts/GenomicPrediction")
 
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
 load("DataforGenomicPrediction.RData")
 ls()
 
+
 # Load BGLR
 if (!require(BGLR)) install.packages("BGLR")
+
 Pheno12cm<-as.data.frame(Pheno12cm)
 Pheno17cm<-as.data.frame(Pheno17cm)
 Pheno12cm$Plant<-factor(Pheno12cm$Plant, levels=rownames(GenoWheat))
@@ -114,89 +120,83 @@ runGenomicPredictionStrategy <- function(traitName, kinshipMatrixWheat, kinshipM
 
 
 evaluateModelPredictions <- function(models, phenotypeData12, phenotypeData17, traitName) {
+    # Generate predictions from models
     predictions12 <- predict(models$fm12)
     predictions17 <- predict(models$fm17)
     predictions12_interaction <- predict(models$fm12_interaction)
     predictions17_interaction <- predict(models$fm17_interaction)
+    
+    # Identify test locations
     testLocations12 <- phenotypeData12$Plant %in% models$TestWheat
     testLocations17 <- phenotypeData17$Plant %in% models$TestWheat
-
+    
+    # Extract test data
     phenotypeTest12 <- phenotypeData12[testLocations12,]
     phenotypeTest17 <- phenotypeData17[testLocations17,]
-    phenotypeTest12Trait<-phenotypeTest12[[traitName]]
-    phenotypeTest17Trait<-phenotypeTest17[[traitName]]
-    correlation12 <- cor(predictions12[testLocations12], phenotypeTest12Trait)
-    correlation17 <- cor(predictions17[testLocations17], phenotypeTest17Trait)
-    correlation12_interaction <- cor(predictions12_interaction[testLocations12], phenotypeTest12Trait)
-    correlation17_interaction <- cor(predictions17_interaction[testLocations17], phenotypeTest17Trait)
     
-    # Plotting results
-    plot(predictions12_interaction[testLocations12], phenotypeTest12Trait, col = phenotypeTest12$Strain)
-    plot(predictions17_interaction[testLocations17], phenotypeTest17Trait, col = phenotypeTest17$Strain)
+    # Calculate correlations
+    correlation12 <- cor(predictions12[testLocations12], phenotypeTest12[[traitName]], use = "complete.obs")
+    correlation17 <- cor(predictions17[testLocations17], phenotypeTest17[[traitName]], use = "complete.obs")
+    correlation12_interaction <- cor(predictions12_interaction[testLocations12], phenotypeTest12[[traitName]], use = "complete.obs")
+    correlation17_interaction <- cor(predictions17_interaction[testLocations17], phenotypeTest17[[traitName]], use = "complete.obs")
 
+    # Calculate within-strain correlations for both interaction and non-interaction models
+    withinStrainCorrelations <- function(predictions, phenotypeData, testLocations) {
+        data <- data.frame(predictions = predictions[testLocations],
+                           traits = phenotypeData[[traitName]][testLocations],
+                           Strain = phenotypeData$Strain[testLocations])
+        
+        listData <- split(data, data$Strain)
+        lapply(listData, function(df) cor(df$predictions, df$traits, use = "complete.obs"))
+    }
+    
+    Cor12withinStrain <- withinStrainCorrelations(predictions12, phenotypeData12, testLocations12)
+    Cor17withinStrain <- withinStrainCorrelations(predictions17, phenotypeData17, testLocations17)
+    Cor12withinStrain_interaction <- withinStrainCorrelations(predictions12_interaction, phenotypeData12, testLocations12)
+    Cor17withinStrain_interaction <- withinStrainCorrelations(predictions17_interaction, phenotypeData17, testLocations17)
+
+    # Return results
     correlationResults <- list(
-        Correlation12 = correlation12, 
-        Correlation17 = correlation17, 
-        Correlation12Interaction = correlation12_interaction, 
-        Correlation17Interaction = correlation17_interaction
+        Correlation12 = correlation12,
+        Correlation17 = correlation17,
+        Correlation12Interaction = correlation12_interaction,
+        Correlation17Interaction = correlation17_interaction,
+        Cor12withinStrain = Cor12withinStrain,
+        Cor17withinStrain = Cor17withinStrain,
+        Cor12withinStrain_interaction = Cor12withinStrain_interaction,
+        Cor17withinStrain_interaction = Cor17withinStrain_interaction
     )
 
-    # Prepare data for ggplot
-    dataFrameForPlot12 <- data.frame(
-        Predictions = predictions12_interaction[testLocations12], 
-        Trait = phenotypeTest12Trait, 
-        Strain = phenotypeTest12$Strain
-    )
-    ggplot12 <- ggplot(dataFrameForPlot12, aes(x = Predictions, y = Trait, color = Strain)) +
-        geom_point() + geom_smooth(method = "lm")
-
-    dataFrameForPlot17 <- data.frame(
-        Predictions = predictions17_interaction[testLocations17], 
-        Trait = phenotypeTest17Trait, 
-        Strain =phenotypeTest17$Strain
-    )
-    ggplot17 <- ggplot(dataFrameForPlot17, aes(x = Predictions, y = Trait, color = Strain)) +
-        geom_point() + geom_smooth(method = "lm")
-
-    plotsResults <- list(ggplot12 = ggplot12, ggplot17 = ggplot17)
-    # Calculate correlations within strains
-# Combine predictions and actual trait values into a new data frame
-data12 <- data.frame(predictions = predictions12_interaction[testLocations12],
-                     traits = phenotypeTest12Trait,
-                     Strain = phenotypeTest12$Strain[testLocations12])
-
-data17 <- data.frame(predictions = predictions17_interaction[testLocations17],
-                     traits = phenotypeTest17Trait,
-                     Strain = phenotypeTest17$Strain[testLocations17])
-
-# Split the data by 'Strain'
-listData12 <- split(data12, data12$Strain)
-listData17 <- split(data17, data17$Strain)
-
-# Calculate correlation for each strain
-Cor12withinStrain <- lapply(listData12, function(df) cor(df$predictions, df$traits, use = "complete.obs"))
-Cor17withinStrain <- lapply(listData17, function(df) cor(df$predictions, df$traits, use = "complete.obs"))
-    correlationResults$Cor12withinStrain<-Cor12withinStrain
-    correlationResults$Cor17withinStrain<-Cor17withinStrain
-    return(list(CorrelationResults = correlationResults, PlotsResults = plotsResults))
+    return(list(CorrelationResults = correlationResults))
 }
 
 
 ST1Models<-runGenomicPredictionStrategy("PLACL", KmatWheatDiag, KmatSepMixDiag, Pheno12cmImpAgg, Pheno17cmImpAgg)
 outcor<-evaluateModelPredictions(ST1Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
 
-outcor$CorrelationResults
-outcor$PlotsResults$ggplot12
-outcor$PlotsResults$ggplot17
+outcor$CorrelationResults$Correlation12
+outcor$CorrelationResults$Correlation17
+outcor$CorrelationResults$Cor12withinStrain
+outcor$CorrelationResults$Cor17withinStrain
+outcor$CorrelationResults$Cor12withinStrain_interaction
+outcor$CorrelationResults$Cor17withinStrain_interaction
+
+CorResultsDFwithinStrains<-rbind(outcor$CorrelationResults$Cor12withinStrain, outcor$CorrelationResults$Cor17withinStrain, outcor$CorrelationResults$Cor12withinStrain_interaction, outcor$CorrelationResults$Cor17withinStrain_interaction)
+rownames(CorResultsDFwithinStrains)<-c("12", "17", "12_interaction", "17_interaction")
+CorResultsDFwithinStrains
+
 
 
 ST1Models<-runGenomicPredictionStrategy("PLACL", KmatWheat, KmatSepMix, Pheno12cmImpAgg, Pheno17cmImpAgg)
 
 outcor<-evaluateModelPredictions(ST1Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
 
-outcor$CorrelationResults
-outcor$PlotsResults$ggplot12
-outcor$PlotsResults$ggplot17
+
+CorResultsDFwithinStrains<-rbind(outcor$CorrelationResults$Cor12withinStrain, outcor$CorrelationResults$Cor17withinStrain, outcor$CorrelationResults$Cor12withinStrain_interaction, outcor$CorrelationResults$Cor17withinStrain_interaction)
+rownames(CorResultsDFwithinStrains)<-c("12", "17", "12_interaction", "17_interaction")
+CorResultsDFwithinStrains
+
+
 
 # for loop to repeat the experiment 10 times
 
@@ -302,7 +302,6 @@ ST2Models<-runGenomicPredictionStrategy2("PLACL", KmatWheatDiag, KmatSepMixDiag,
 outcor<-evaluateModelPredictions2(ST2Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
 ST2Models<-runGenomicPredictionStrategy2("PLACL", KmatWheatDiag, KmatSepMixDiag, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix2")
 outcor<-evaluateModelPredictions2(ST2Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
-
 ST2Models<-runGenomicPredictionStrategy2("PLACL", KmatWheatDiag, KmatSepMixDiag, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix3")
 outcor<-evaluateModelPredictions2(ST2Models, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
 
@@ -468,19 +467,622 @@ load("AllGenomicPredictionResults.RData")
 # Extract the correlation results for Scenario 1
 # only within mixes
 
-correlationsScenario1 <- lapply(allResults, function(iterationResults) {
+correlationsScenario1 <- sapply(allResults, function(iterationResults) {
   scenario1Results <- iterationResults$Scenario1
-  cor12withinStrain<-scenario1Results$CorrelationResults$Cor12withinStrain
-  cor17withinStrain<-scenario1Results$CorrelationResults$Cor17withinStrain
-  return(list(Cor12withinStrain=cor12withinStrain, Cor17withinStrain=cor17withinStrain))
+  corwithinStrains<-scenario1Results$CorrelationResults
+  return(corwithinStrains)
+})
+dim(correlationsScenario1)
+resultsScenario1_12<-correlationsScenario1[5,]
+resultsScenario1_17<-correlationsScenario1[6,]
+resultsScenario1_12_int<-correlationsScenario1[7,]
+resultsScenario1_17_int<-correlationsScenario1[8,]
+
+
+
+resultsScenario1_12_1<-sapply(resultsScenario1_12, function(x) x)
+resultsScenario1_17_1<-sapply(resultsScenario1_17, function(x) x)
+resultsScenario1_12_1_int<-sapply(resultsScenario1_12_int, function(x) x)
+resultsScenario1_17_1_int<-sapply(resultsScenario1_17_int, function(x) x)
+resultsScenario1_12_1[1:4,1:6]
+
+# Assuming resultsScenario1_12_1 is already loaded in your environment
+# Let's reshape this into a 3D array.
+
+# Number of mixes, methods, and iterations
+num_mixes <- 4
+num_methods <- 4
+num_iterations <- 10
+
+# We need to extract data for each iteration and method combination correctly.
+# Reshape the data from 2D matrix to 3D array
+array_data_12 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_17 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_12_int <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_17_int <- array(dim = c(num_mixes, num_methods, num_iterations))
+# Filling the array
+for (iteration in 1:num_iterations) {
+  for (method in 1:num_methods) {
+    # Calculate column indices for the current iteration and method
+    start_col <- (iteration - 1) * num_methods + method
+    array_data_12[, method, iteration] <- unlist(resultsScenario1_12_1[, start_col])
+    array_data_17[, method, iteration] <- unlist(resultsScenario1_17_1[, start_col])
+    array_data_12_int[, method, iteration] <- unlist(resultsScenario1_12_1_int[, start_col])
+    array_data_17_int[, method, iteration] <- unlist(resultsScenario1_17_1_int[, start_col])
+  }
+}
+
+# Adding dimension names for clarity
+dimnames(array_data_12)<- dimnames(array_data_17) <- list(
+  Mix = paste0("Mix ", 1:num_mixes),
+  Method = c("Normal Mix Normal", "Normal Mix Diagonal", "Diagonal Mix Normal", "Diagonal Mix Diagonal"),
+  Iteration = paste0("Iteration ", 1:num_iterations)
+)
+
+dimnames(array_data_12_int)<- dimnames(array_data_17_int) <- list(
+  Mix = paste0("Mix ", 1:num_mixes),
+  Method = c("Normal Mix Normal", "Normal Mix Diagonal", "Diagonal Mix Normal", "Diagonal Mix Diagonal"),
+  Iteration = paste0("Iteration ", 1:num_iterations)
+)
+
+# Display the structure of the created 3D array
+print(array_data_12)
+
+dimnames(array_data_12)
+
+# means for each method and mix
+means12Scenario1<-apply(array_data_12, c(1,2), function(x){mean(x, na.rm = TRUE)})
+means17Scenario1<-apply(array_data_17, c(1,2), function(x){mean(x, na.rm = TRUE)})
+means12Scenario1_int<-apply(array_data_12_int, c(1,2), function(x){mean(x, na.rm = TRUE)})
+means17Scenario1_int<-apply(array_data_17_int, c(1,2), function(x){mean(x, na.rm = TRUE)})
+
+
+se12Scenario1<-apply(array_data_12, c(1,2), function(x){sd(x, na.rm = TRUE)/sqrt(length(x))})   
+se17Scenario1<-apply(array_data_17, c(1,2), function(x){sd(x, na.rm = TRUE)/sqrt(length(x))})
+se12Scenario1_int<-apply(array_data_12_int, c(1,2), function(x){sd(x, na.rm = TRUE)/sqrt(length(x))})
+se17Scenario1_int<-apply(array_data_17_int, c(1,2), function(x){sd(x, na.rm = TRUE)/sqrt(length(x))})
+
+# barplot of means with error bars
+library(ggplot2)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+means12Scenario1<-as.data.frame(means12Scenario1)
+means17Scenario1<-as.data.frame(means17Scenario1)
+means12Scenario1_int<-as.data.frame(means12Scenario1_int)
+means17Scenario1_int<-as.data.frame(means17Scenario1_int)
+means12Scenario1$Mix<-rownames(means12Scenario1)
+means17Scenario1$Mix<-rownames(means17Scenario1)
+means12Scenario1_int$Mix<-rownames(means12Scenario1_int)
+means17Scenario1_int$Mix<-rownames(means17Scenario1_int)
+
+# Reshape the means data frame from wide to long format
+means_long_12 <- means12Scenario1 %>%
+  pivot_longer(cols = -Mix, names_to = "Method", values_to = "Mean")
+means_long_17 <- means17Scenario1 %>%
+    pivot_longer(cols = -Mix, names_to = "Method", values_to = "Mean")
+means_long_12_int <- means12Scenario1_int %>%
+  pivot_longer(cols = -Mix, names_to = "Method", values_to = "Mean")  
+means_long_17_int <- means17Scenario1_int %>% 
+  pivot_longer(cols = -Mix, names_to = "Method", values_to = "Mean")  
+
+
+se12Scenario1<-as.data.frame(se12Scenario1)
+se12Scenario1$Mix<-rownames(se12Scenario1)
+se17Scenario1<-as.data.frame(se17Scenario1)
+se17Scenario1$Mix<-rownames(se17Scenario1)
+se12Scenario1_int<-as.data.frame(se12Scenario1_int)
+se12Scenario1_int$Mix<-rownames(se12Scenario1_int)
+se17Scenario1_int<-as.data.frame(se17Scenario1_int)
+se17Scenario1_int$Mix<-rownames(se17Scenario1_int)
+
+
+
+sd_long_12 <- se12Scenario1 %>%
+  pivot_longer(cols = -Mix, names_to = "Method", values_to = "SE")
+sd_long_17 <- se17Scenario1 %>%
+  pivot_longer(cols = -Mix, names_to = "Method", values_to = "SE")
+sd_long_12_int <- se12Scenario1_int %>%
+  pivot_longer(cols = -Mix, names_to = "Method", values_to = "SE")
+sd_long_17_int <- se17Scenario1_int %>%
+  pivot_longer(cols = -Mix, names_to = "Method", values_to = "SE")
+
+
+
+# Combine the means and standard errors into a single data frame
+means_long_12$SE <- sd_long_12$SE
+means_long_17$SE <- sd_long_17$SE
+means_long_12_int$SE <- sd_long_12_int$SE
+means_long_17_int$SE <- sd_long_17_int$SE
+
+# Plot the means with error bars
+p1_12<-ggplot(means_long_12, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+p1_17<-ggplot(means_long_17, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+p1_int_12<-ggplot(means_long_12_int, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+p1_int_17<-ggplot(means_long_17_int, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+
+##################
+
+correlationsScenario2 <- lapply(allResults, function(iterationResults) {
+  scenario2Results <- iterationResults[grep("Scenario2", names(iterationResults))][1:4]
+  return(scenario2Results)
 })
 
-# convert into data frame
-correlationsScenario1DF <- do.call(rbind, correlationsScenario1)
-correlationsScenario1DF <- as.data.frame(correlationsScenario1DF)
-correlationsScenario1DF$Iteration <- 1:nrow(correlationsScenario1DF)
-correlationsScenario1DF$experiment<-rownames(correlationsScenario1DF)
-# table of mean correlations and standard errors
-colnames(correlationsScenario1DF)
-meanCorrelations <- aggregate(. ~ Iteration+experiment, data = correlationsScenario1DF, FUN = function(x) c(Mean = mean(x), SE = sd(x) / sqrt(length(x))))
-meanCorrelations
+
+# Create an array to store the correlation results for Scenario 2
+num_mixes <- 4
+num_methods_wheat <- 2
+num_methods_mix <- 2
+num_methods <- 4
+num_iterations <- 10
+
+array_data_12_scenario2 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_17_scenario2 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_12_int_scenario2 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_17_int_scenario2 <- array(dim = c(num_mixes, num_methods, num_iterations))
+
+# Fill the arrays with correlation results
+for (iteration in 1:num_iterations) {
+  method=0
+  for (method_wheat in 1:num_methods_wheat) {
+    for (method_mix in 1:num_methods_mix) {
+      method=method+1
+    for (mix in 1:num_mixes) {
+      cor_results <- correlationsScenario2[[paste("Iteration", iteration, "Wheat", names(kinshipWheat)[method_wheat], "Mix", names(kinshipMix)[method_mix])]][[paste("Scenario2 mix", mix, sep = "")]]$CorrelationResults
+      array_data_12_scenario2[mix, method, iteration] <- cor_results$Correlation12
+      array_data_17_scenario2[mix, method,iteration] <- cor_results$Correlation17
+      array_data_12_int_scenario2[mix, method, iteration] <- cor_results$Correlation12Interaction
+      array_data_17_int_scenario2[mix, method, iteration] <- cor_results$Correlation17Interaction
+    }
+  }
+  }
+}
+
+# Add dimension names for clarity
+dimnames(array_data_12_scenario2) <- dimnames(array_data_17_scenario2) <- dimnames(array_data_12_int_scenario2) <- dimnames(array_data_17_int_scenario2) <- list(
+  Mix = paste0("Mix ", 1:num_mixes),
+  Method = c("Normal Mix Normal", "Normal Mix Diagonal", "Diagonal Mix Normal", "Diagonal Mix Diagonal"),
+  Iteration = paste0("Iteration ", 1:num_iterations)
+)
+
+# Calculate means and standard errors for each method and mix
+means12Scenario2 <- apply(array_data_12_scenario2, c(1, 2), mean, na.rm = TRUE)
+means17Scenario2 <- apply(array_data_17_scenario2, c(1, 2), mean, na.rm = TRUE)
+means12Scenario2_int <- apply(array_data_12_int_scenario2, c(1, 2), mean, na.rm = TRUE)
+means17Scenario2_int <- apply(array_data_17_int_scenario2, c(1, 2), mean, na.rm = TRUE)
+
+se12Scenario2 <- apply(array_data_12_scenario2, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+se17Scenario2 <- apply(array_data_17_scenario2, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+se12Scenario2_int <- apply(array_data_12_int_scenario2, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+se17Scenario2_int <- apply(array_data_17_int_scenario2, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+
+# Convert means and standard errors to data frames for plotting
+means12Scenario2 <- as.data.frame(means12Scenario2)
+means17Scenario2 <- as.data.frame(means17Scenario2)
+means12Scenario2_int <- as.data.frame(means12Scenario2_int)
+means17Scenario2_int <- as.data.frame(means17Scenario2_int)
+
+se12Scenario2 <- as.data.frame(se12Scenario2)
+se17Scenario2 <- as.data.frame(se17Scenario2)
+se12Scenario2_int <- as.data.frame(se12Scenario2_int)
+se17Scenario2_int <- as.data.frame(se17Scenario2_int)
+
+# Add mix names to the data frames
+means12Scenario2$Mix<-means17Scenario2$Mix<-means12Scenario2_int$Mix<-means17Scenario2_int$Mix<-rownames(means12Scenario2) <- rownames(means17Scenario2) <- rownames(means12Scenario2_int) <- rownames(means17Scenario2_int) <- paste0("Mix ", 1:num_mixes)
+se12Scenario2$Mix<-se17Scenario2$Mix<-se12Scenario2_int$Mix<-se17Scenario2_int$Mix<-rownames(se12Scenario2) <- rownames(se17Scenario2) <- rownames(se12Scenario2_int) <- rownames(se17Scenario2_int) <- paste0("Mix ", 1:num_mixes)
+
+# Reshape the data frames for plotting
+means_long_12_scenario2 <- means12Scenario2 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "Mean")
+means_long_17_scenario2 <- means17Scenario2 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "Mean")
+means_long_12_int_scenario2 <- means12Scenario2_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "Mean")
+means_long_17_int_scenario2 <- means17Scenario2_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "Mean")
+
+sd_long_12_scenario2 <- se12Scenario2 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "SE")
+sd_long_17_scenario2 <- se17Scenario2 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "SE")
+sd_long_12_int_scenario2 <- se12Scenario2_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "SE")
+sd_long_17_int_scenario2 <- se17Scenario2_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario2),"Mix"), names_to = "Method", values_to = "SE")
+
+# Combine means and standard errors for plotting
+means_long_12_scenario2$SE <- sd_long_12_scenario2$SE
+means_long_17_scenario2$SE <- sd_long_17_scenario2$SE
+means_long_12_int_scenario2$SE <- sd_long_12_int_scenario2$SE
+means_long_17_int_scenario2$SE <- sd_long_17_int_scenario2$SE
+
+# Plot the means with error bars for Scenario 2
+ggplot(means_long_12_scenario2, aes(x = Method, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 2 (12 cm)", x = "Method", y = "Mean Correlation") +
+  theme_minimal() +
+  facet_wrap(~ Mix)
+
+ggplot(means_long_17_scenario2, aes(x = Method, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 2 (17 cm)", x = "Method", y = "Mean Correlation") +
+  theme_minimal() +
+  facet_wrap(~ Mix)
+
+p2_12<-ggplot(means_long_12_scenario2, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+p2_17<-ggplot(means_long_17_scenario2, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+
+p2_12_int<-ggplot(means_long_12_int_scenario2, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+
+p2_17_int<-ggplot(means_long_17_int_scenario2, aes(x = Mix, y = Mean, fill = Method))   +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+###########################
+
+correlationsScenario3 <- lapply(allResults, function(iterationResults) {
+  scenario3Results <- iterationResults[grep("Scenario3", names(iterationResults))][1:4]
+  return(scenario3Results)
+})
+
+
+# Create an array to store the correlation results for Scenario 2
+num_mixes <- 4
+num_methods_wheat <- 2
+num_methods_mix <- 2
+num_methods <- 4
+num_iterations <- 10
+
+array_data_12_scenario3 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_17_scenario3 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_12_int_scenario3 <- array(dim = c(num_mixes, num_methods, num_iterations))
+array_data_17_int_scenario3 <- array(dim = c(num_mixes, num_methods, num_iterations))
+
+# Fill the arrays with correlation results
+for (iteration in 1:num_iterations) {
+  method=0
+  for (method_wheat in 1:num_methods_wheat) {
+    for (method_mix in 1:num_methods_mix) {
+      method=method+1
+      for (mix in 1:num_mixes) {
+        cor_results <- correlationsScenario3[[paste("Iteration", iteration, "Wheat", names(kinshipWheat)[method_wheat], "Mix", names(kinshipMix)[method_mix])]][[paste("Scenario3 mix", mix, sep = "")]]$CorrelationResults
+        array_data_12_scenario3[mix, method, iteration] <- cor_results$Correlation12
+        array_data_17_scenario3[mix, method,iteration] <- cor_results$Correlation17
+        array_data_12_int_scenario3[mix, method, iteration] <- cor_results$Correlation12Interaction
+        array_data_17_int_scenario3[mix, method, iteration] <- cor_results$Correlation17Interaction
+      }
+    }
+  }
+}
+
+# Add dimension names for clarity
+dimnames(array_data_12_scenario3) <- dimnames(array_data_17_scenario3) <- dimnames(array_data_12_int_scenario3) <- dimnames(array_data_17_int_scenario3) <- list(
+  Mix = paste0("Mix ", 1:num_mixes),
+  Method = c("Normal Mix Normal", "Normal Mix Diagonal", "Diagonal Mix Normal", "Diagonal Mix Diagonal"),
+  Iteration = paste0("Iteration ", 1:num_iterations)
+)
+
+# Calculate means and standard errors for each method and mix
+means12Scenario3 <- apply(array_data_12_scenario3, c(1, 2), mean, na.rm = TRUE)
+means17Scenario3 <- apply(array_data_17_scenario3, c(1, 2), mean, na.rm = TRUE)
+means12Scenario3_int <- apply(array_data_12_int_scenario3, c(1, 2), mean, na.rm = TRUE)
+means17Scenario3_int <- apply(array_data_17_int_scenario3, c(1, 2), mean, na.rm = TRUE)
+
+se12Scenario3 <- apply(array_data_12_scenario3, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+se17Scenario3 <- apply(array_data_17_scenario3, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+se12Scenario3_int <- apply(array_data_12_int_scenario3, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+se17Scenario3_int <- apply(array_data_17_int_scenario3, c(1, 2), function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+
+# Convert means and standard errors to data frames for plotting
+means12Scenario3 <- as.data.frame(means12Scenario3)
+means17Scenario3 <- as.data.frame(means17Scenario3)
+means12Scenario3_int <- as.data.frame(means12Scenario3_int)
+means17Scenario3_int <- as.data.frame(means17Scenario3_int)
+
+se12Scenario3 <- as.data.frame(se12Scenario3)
+se17Scenario3 <- as.data.frame(se17Scenario3)
+se12Scenario3_int <- as.data.frame(se12Scenario3_int)
+se17Scenario3_int <- as.data.frame(se17Scenario3_int)
+
+# Add mix names to the data frames
+means12Scenario3$Mix<-means17Scenario3$Mix<-means12Scenario3_int$Mix<-means17Scenario3_int$Mix<-rownames(means12Scenario3) <- rownames(means17Scenario3) <- rownames(means12Scenario3_int) <- rownames(means17Scenario3_int) <- paste0("Mix ", 1:num_mixes)
+se12Scenario3$Mix<-se17Scenario3$Mix<-se12Scenario3_int$Mix<-se17Scenario3_int$Mix<-rownames(se12Scenario3) <- rownames(se17Scenario3) <- rownames(se12Scenario3_int) <- rownames(se17Scenario3_int) <- paste0("Mix ", 1:num_mixes)
+
+# Reshape the data frames for plotting
+means_long_12_scenario3 <- means12Scenario3 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "Mean")
+means_long_17_scenario3 <- means17Scenario3 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "Mean")
+means_long_12_int_scenario3 <- means12Scenario3_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "Mean")
+means_long_17_int_scenario3 <- means17Scenario3_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "Mean")
+
+sd_long_12_scenario3 <- se12Scenario3 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "SE")
+sd_long_17_scenario3 <- se17Scenario3 %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "SE")
+sd_long_12_int_scenario3 <- se12Scenario3_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "SE")
+sd_long_17_int_scenario3 <- se17Scenario3_int %>%
+  pivot_longer(cols = setdiff(colnames(means12Scenario3),"Mix"), names_to = "Method", values_to = "SE")
+
+# Combine means and standard errors for plotting
+means_long_12_scenario3$SE <- sd_long_12_scenario3$SE
+means_long_17_scenario3$SE <- sd_long_17_scenario3$SE
+means_long_12_int_scenario3$SE <- sd_long_12_int_scenario3$SE
+means_long_17_int_scenario3$SE <- sd_long_17_int_scenario3$SE
+
+# Plot the means with error bars for Scenario 2
+ggplot(means_long_12_scenario3, aes(x = Method, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 2 (12 cm)", x = "Method", y = "Mean Correlation") +
+  theme_minimal() +
+  facet_wrap(~ Mix)
+
+ggplot(means_long_17_scenario3, aes(x = Method, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 2 (17 cm)", x = "Method", y = "Mean Correlation") +
+  theme_minimal() +
+  facet_wrap(~ Mix)
+
+
+
+p3_12<-ggplot(means_long_12_scenario3, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+p3_17<-ggplot(means_long_17_scenario3, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+p3_12_int<-ggplot(means_long_12_int_scenario3, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+p3_17_int<-ggplot(means_long_17_int_scenario3, aes(x = Mix, y = Mean, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "Mean Correlation for Scenario 1", x = "Mix", y = "Mean Correlation") +
+  theme_minimal()
+
+
+
+
+#############Another scenario where we leave one mix out we make predictions for the left out mix for the wheat, store the predictions.
+# After going over all mixes, we calculate the correlation between the predictions and the actual phenotypes.
+
+runGenomicPredictionStrategy4 <-function(traitName, kinshipMatrixWheat, kinshipMatrixMix, testMix) {
+    phenotypeTrain12 <- phenotypeData12cm
+    phenotypeTrain17 <- phenotypeData17cm
+    phenotypeTrain12[phenotypeTrain12$Strain %in% testMix, traitName] <- NA
+    phenotypeTrain17[phenotypeTrain17$Strain %in% testMix, traitName] <- NA
+    print(sum(is.na(phenotypeTrain12[phenotypeTrain12$Strain %in% testMix, traitName])))
+    ZtrainWheat12 <- model.matrix(~0 + Plant, data = phenotypeTrain12)
+    ZtrainWheat17 <- model.matrix(~0 + Plant, data = phenotypeTrain17)
+    XtrainWheat12 <- model.matrix(~1, data = phenotypeTrain12)
+    XtrainWheat17 <- model.matrix(~1, data = phenotypeTrain17)
+    ZTrainMix12 <- model.matrix(~0 + Strain, data = phenotypeTrain12)
+    ZTrainMix17 <- model.matrix(~0 + Strain, data = phenotypeTrain17)
+
+    fm12 <- BGLR(y = as.numeric(phenotypeTrain12[[traitName]]), ETA = list(
+        list(X = XtrainWheat12, model = "FIXED"),
+        list(K = ZtrainWheat12 %*% kinshipMatrixWheat %*% t(ZtrainWheat12), model = "RKHS"),
+        list(K = ZTrainMix12 %*% kinshipMatrixMix %*% t(ZTrainMix12), model = "RKHS")
+    ), nIter = 10000, burnIn = 2000, verbose = FALSE)
+
+    fm17 <- BGLR(y = as.numeric(phenotypeTrain17[[traitName]]), ETA = list(
+        list(X = XtrainWheat17, model = "FIXED"),
+        list(K = ZtrainWheat17 %*% kinshipMatrixWheat %*% t(ZtrainWheat17), model = "RKHS"),
+        list(K = ZTrainMix17 %*% kinshipMatrixMix %*% t(ZTrainMix17), model = "RKHS")
+    ), nIter = 10000, burnIn = 2000, verbose = FALSE)
+
+    K12_mix <- ZTrainMix12 %*% kinshipMatrixMix %*% t(ZTrainMix12)
+    K12_wheat <- ZtrainWheat12 %*% kinshipMatrixWheat %*% t(ZtrainWheat12)
+    K12_combined <- K12_mix * K12_wheat
+
+    K17_mix <- ZTrainMix17 %*% kinshipMatrixMix %*% t(ZTrainMix17)
+    K17_wheat <- ZtrainWheat17 %*% kinshipMatrixWheat %*% t(ZtrainWheat17)
+    K17_combined <- K17_mix * K17_wheat
+    fm12_interaction <- BGLR(y = as.numeric(phenotypeTrain12[[traitName]]), ETA = list(
+        list(X = XtrainWheat12, model = "FIXED"),
+        list(K = K12_mix, model = "RKHS"),
+        list(K = K12_wheat, model = "RKHS"),
+        list(K = K12_combined, model = "RKHS")
+    ), nIter = 10000, burnIn = 2000, verbose = FALSE)
+
+    fm17_interaction <- BGLR(y = as.numeric(phenotypeTrain17[[traitName]]), ETA = list(
+        list(X = XtrainWheat17, model = "FIXED"),
+        list(K = K17_mix, model = "RKHS"),
+        list(K = K17_wheat, model = "RKHS"),
+        list(K = K17_combined, model = "RKHS")
+    ), nIter = 10000, burnIn = 2000, verbose = FALSE)
+    return(list(fm12 = fm12, fm17 = fm17, fm12_interaction = fm12_interaction, fm17_interaction = fm17_interaction, TestMix = testMix))
+}
+
+
+GetModelPredictions4 <- function(models, phenotypeData12, phenotypeData17, traitName) {
+  predictions12 <- predict(models$fm12)
+  predictions17 <- predict(models$fm17)
+  predictions12_interaction <- predict(models$fm12_interaction)
+  predictions17_interaction <- predict(models$fm17_interaction)
+  testLocations12 <- phenotypeData12$Strain %in% models$TestMix
+  testLocations17 <- phenotypeData17$Strain %in% models$TestMix
+  
+  predResults <- list(
+    pred12 = predictions12[testLocations12], 
+    pred17 = predictions17[testLocations17], 
+    pred12_int = predictions12_interaction[testLocations12], 
+    pred17_int = predictions12_interaction[testLocations12],
+    mix=models$TestMix,
+    testLocations12=testLocations12,
+    testLocations17=testLocations17
+  )
+  return(predResults)
+}
+
+
+ST2ModelsMix1<-runGenomicPredictionStrategy4("PLACL", KmatWheatDiag, KmatSepMix, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix1")
+predsMix1<-GetModelPredictions4(ST2ModelsMix1, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
+ST2ModelsMix2<-runGenomicPredictionStrategy4("PLACL", KmatWheatDiag, KmatSepMix, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix2")
+predsMix2<-GetModelPredictions4(ST2ModelsMix2, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
+ST2ModelsMix3<-runGenomicPredictionStrategy4("PLACL", KmatWheatDiag, KmatSepMix, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix3")
+predsMix3<-GetModelPredictions4(ST2ModelsMix3, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
+ST2ModelsMix4<-runGenomicPredictionStrategy4("PLACL", KmatWheatDiag, KmatSepMix, Pheno12cmImpAgg, Pheno17cmImpAgg, "mix4")
+predsMix4<-GetModelPredictions4(ST2ModelsMix4, Pheno12cmImpAgg, Pheno17cmImpAgg,"PLACL")
+
+
+cor(c(predsMix1$pred12,predsMix2$pred12,predsMix3$pred12,predsMix4$pred12),c(Pheno12cmImpAgg[predsMix1$testLocations12,"PLACL"],
+                                                                         Pheno12cmImpAgg[predsMix2$testLocations12,"PLACL"],
+                                                                         Pheno12cmImpAgg[predsMix3$testLocations12,"PLACL"],
+                                                                         Pheno12cmImpAgg[predsMix4$testLocations12,"PLACL"]))
+
+colvec<-rep(0,length(c(Pheno12cmImpAgg[predsMix1$testLocations12,"PLACL"],
+                       Pheno12cmImpAgg[predsMix2$testLocations12,"PLACL"],
+                       Pheno12cmImpAgg[predsMix3$testLocations12,"PLACL"],
+                       Pheno12cmImpAgg[predsMix4$testLocations12,"PLACL"])))
+
+
+colvec[predsMix1$testLocations12]<-1
+sum(predsMix1$testLocations12)
+colvec[predsMix2$testLocations12]<-2
+sum(predsMix2$testLocations12)
+colvec[predsMix3$testLocations12]<-3
+sum(predsMix3$testLocations12)
+colvec[predsMix4$testLocations12]<-4
+sum(predsMix4$testLocations12)
+plot(c(predsMix1$pred12,predsMix2$pred12,predsMix3$pred12,predsMix4$pred12),c(Pheno12cmImpAgg[predsMix1$testLocations12,"PLACL"],
+                                                                              Pheno12cmImpAgg[predsMix2$testLocations12,"PLACL"],
+                                                                              Pheno12cmImpAgg[predsMix3$testLocations12,"PLACL"],
+                                                                              Pheno12cmImpAgg[predsMix4$testLocations12,"PLACL"]), col= colvec)
+
+
+cor(c(mean(predsMix1$pred12),mean(predsMix2$pred12),mean(predsMix3$pred12),mean(predsMix4$pred12)),c(mean(Pheno12cmImpAgg[predsMix1$testLocations12,"PLACL"]),
+                                                                                                      mean(Pheno12cmImpAgg[predsMix2$testLocations12,"PLACL"]),
+                                                                                                           mean(Pheno12cmImpAgg[predsMix3$testLocations12,"PLACL"]),
+                                                                                                                mean(Pheno12cmImpAgg[predsMix4$testLocations12,"PLACL"])))
+
+alldata<-cbind(predsMix1$pred12,predsMix2$pred12,predsMix3$pred12,predsMix4$pred12,Pheno12cmImpAgg[predsMix1$testLocations12,"PLACL"],
+                                                                               Pheno12cmImpAgg[predsMix2$testLocations12,"PLACL"],
+                                                                               Pheno12cmImpAgg[predsMix3$testLocations12,"PLACL"],
+                                                                               Pheno12cmImpAgg[predsMix4$testLocations12,"PLACL"])
+
+corsoverwheat<-apply(alldata,1,function(x)cor(x[1:4],x[5:8]))
+
+boxplot(corsoverwheat)
+
+
+
+alldata<-cbind(predsMix1$pred17,predsMix2$pred17,predsMix3$pred17,predsMix4$pred17,Pheno17cmImpAgg[predsMix1$testLocations17,"PLACL"],
+               Pheno17cmImpAgg[predsMix2$testLocations17,"PLACL"],
+               Pheno17cmImpAgg[predsMix3$testLocations17,"PLACL"],
+               Pheno17cmImpAgg[predsMix4$testLocations17,"PLACL"])
+
+corsoverwheat<-apply(alldata,1,function(x)cor(x[1:4],x[5:8]))
+
+
+
+
+
+##############################################GWAS for this phenotype. 
+source("../gapit_functions.txt")  # GAPIT functions
+models=c("FarmCPU", "Blink")
+
+
+
+
+# Assuming you start in the root directory where you want to create subdirectories
+initial_dir <- getwd()
+
+# Array to hold the number of principal components to be used in each analysis
+pc_values <- c(2,5)
+
+# Model types to be used
+models <- c("FarmCPU", "Blink")
+
+# Loop through each principal component setting
+for (pc in pc_values) {
+  # Create a directory name based on the principal component
+  dir_name <- paste("GWAS_resultsForPilarsTraitsApr25_", pc, "PC", sep="")
+  
+  # Check if the directory exists, if not create it
+  if (!dir.exists(dir_name)) {
+    dir.create(dir_name, recursive = TRUE)
+  }
+  
+  # Set the working directory to the new directory
+  setwd(file.path(initial_dir, dir_name))
+  
+  # Run the GAPIT function
+  tmp <- capture.output({
+    GAPIT(
+      Y = BLUPS,
+      GD = GenoMat13_thinned,
+      GM = mapping13_thinned,
+      KI = Kmat,
+      CV = NULL,
+      PCA.total = pc,
+      model = models,
+      file.output = TRUE,
+      cutOff = 0.1
+    )
+  })
+  
+  # Go back to the initial directory
+  setwd(initial_dir)
+}
+
+# Optionally print a message when the loop is complete
+cat("GAPIT analysis complete for all principal component settings.\n")
+
+
+
+
+boxplot(corsoverwheat)

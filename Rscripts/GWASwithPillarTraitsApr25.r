@@ -140,31 +140,31 @@ cat("GAPIT analysis complete for all principal component settings.\n")
 
 
 
-# Load the NAM package
-if (!require(NAM)) install.packages("NAM", repos = "https://cran.r-project.org")
-library(NAM)
+# # Load the NAM package
+# if (!require(NAM)) install.packages("NAM", repos = "https://cran.r-project.org")
+# library(NAM)
 
-# https://rdrr.io/cran/NAM/man/gwas.html
+# # https://rdrr.io/cran/NAM/man/gwas.html
 
-MAP<-mapping13_thinned
+# MAP<-mapping13_thinned
 
-gwasNAM<-gwas(y=BLUPS$Radius_inhibition,
-              gen=as.matrix(GenoMat13_thinned[,-1]), MAP = mapping13_thinned)
+# gwasNAM<-gwas(y=BLUPS$Radius_inhibition,
+#               gen=as.matrix(GenoMat13_thinned[,-1]), MAP = mapping13_thinned)
 
 
-str(gwasNAM)
-plot(gwasNAM)
-head(gwasNAM$PolyTest)
-hist(gwasNAM$PolyTest$pval)
-pvals<-data.frame(pval=gwasNAM$PolyTest$pval)
-pvals$SNP<-rownames(pvals)
-pvals$pval[pvals$pval<0]<-1
-pvals$pval[pvals$pval>1]<-1
+# str(gwasNAM)
+# plot(gwasNAM)
+# head(gwasNAM$PolyTest)
+# hist(gwasNAM$PolyTest$pval)
+# pvals<-data.frame(pval=gwasNAM$PolyTest$pval)
+# pvals$SNP<-rownames(pvals)
+# pvals$pval[pvals$pval<0]<-1
+# pvals$pval[pvals$pval>1]<-1
 
-png("GWAS_pvalues.png", width=800, height=600)
-plot(-log10(pvals$pval), type="h", xlab="SNP", ylab="p-value", main="GWAS p-values")
-abline(h=-log10(0.05), col="red", lty=2)
-dev.off()
+# png("GWAS_pvalues.png", width=800, height=600)
+# plot(-log10(pvals$pval), type="h", xlab="SNP", ylab="p-value", main="GWAS p-values")
+# abline(h=-log10(0.05), col="red", lty=2)
+# dev.off()
 
 
 

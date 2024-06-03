@@ -14,6 +14,17 @@ source("gapit_functions.txt")  # GAPIT functions
 # Read numeric genotypes file
 geno <- fread("/Users/denizakdemir/Library/CloudStorage/GoogleDrive-deniz.akdemir.work@gmail.com/.shortcut-targets-by-id/1n5uwNs72GdTeZxmWZKLfFkgE0FIjPxVG/Akdemir_Deniz/github/GATKPIPE2/ProcessedVCFs/SNPGENOTASSELOUTPUT/6_tassel_analysis/numeric_allele_counts_filtered.txt", skip = 1, header = TRUE, sep = "\t", na.strings = c("", "NA",0.5,"0.5"))
 geno <- as.data.frame(geno)
+# find all genotypes that have _sorted in their names
+
+namesInGeno<- geno[,1]
+has_sorted<-grepl("_sorted", namesInGeno)
+
+geno<-geno[!has_sorted,]
+dim(geno)
+
+
+geno[1:5,1:5]
+dim(geno)
 gc()
 # Remove duplicate Genotypes
 colnames(geno)[1]<-"Taxa"
@@ -326,3 +337,4 @@ Kmat<-rrBLUP::A.mat(GenoMat13_thinned[, -1]-1, min.MAF = .1, max.missing = .3)
 
 # save Kmat, GenoMat13_thinned, mapping13_thinned 
 save(Kmat, GenoMat13_thinned, mapping13_thinned, file = "DataforPillarApr25/GenoDataSeptoria100.RData")
+

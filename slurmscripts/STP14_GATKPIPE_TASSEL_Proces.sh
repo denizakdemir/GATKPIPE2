@@ -11,28 +11,41 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="your_email_here"
 
-# Load TASSEL module
+# Load required modules
 module load TASSEL/5.2.86-Java-1.8.0_212
+module load bcftools
 
 # Increase TASSEL's memory allocation
 export _JAVA_OPTIONS="-Xms256m -Xmx60g"
 
 # Set paths
 ANNOTATED_SNPS_VCF="5_annotation/snpEff_snps/geno_filtered_snps.ann.vcf.gz"
+ANNOTATED_INDELS_VCF="5_annotation/snpEff_indels/geno_filtered_indels.ann.vcf.gz"
 OUT_DIR="6_tassel_analysis"
-mkdir -p $OUT_DIR
+INDEL_OUT_DIR="6_tassel_analysis_indels"
 
-# Convert annotated VCF to TASSEL format
-gunzip -c $ANNOTATED_SNPS_VCF > $OUT_DIR/temp_snps.vcf
+# Create output directories
+mkdir -p $OUT_DIR
+mkdir -p $INDEL_OUT_DIR
+
+# Remove samples with "sorted" in their names from SNP VCF
+bcftools view -s ^$(bcftools query -l $ANNOTATED_SNPS_VCF | grep "sorted" | paste -sd,) $ANNOTATED_SNPS_VCF -Oz -o $OUT_DIR/filtered_snps.vcf.gz
+bcftools index $OUT_DIR/filtered_snps.vcf.gz
+
+# Remove samples with "sorted" in their names from indel VCF
+bcftools view -s ^$(bcftools query -l $ANNOTATED_INDELS_VCF | grep "sorted" | paste -sd,) $ANNOTATED_INDELS_VCF -Oz -o $INDEL_OUT_DIR/filtered_indels.vcf.gz
+bcftools index $INDEL_OUT_DIR/filtered_indels.vcf.gz
+
+# Convert filtered SNP VCF to TASSEL format
+gunzip -c $OUT_DIR/filtered_snps.vcf.gz > $OUT_DIR/temp_snps.vcf
 run_pipeline.pl -Xmx60g -importGuess $OUT_DIR/temp_snps.vcf -export $OUT_DIR/tassel
 rm $OUT_DIR/temp_snps.vcf
 
-# Haplotype finding
+# Haplotype finding for SNPs
 run_pipeline.pl -Xmx60g -FILLINFindHaplotypesPlugin -hmp $OUT_DIR/tassel.hmp.txt -o $OUT_DIR/snp_matrix_haplotypes
 
-# Imputation using FILLIN
+# Imputation using FILLIN for SNPs
 run_pipeline.pl -Xmx60g -FILLINImputationPlugin -hmp $OUT_DIR/tassel.hmp.txt -d $OUT_DIR/snp_matrix_haplotypes -o $OUT_DIR/snp_matrix_imputed.hmp.txt.gz
-
 
 # Filter SNPs with sliding window
 FILTERED_SNP_OUT="$OUT_DIR/filtered_tassel"
@@ -41,11 +54,8 @@ run_pipeline.pl -Xmx60g -fork1 -importGuess $OUT_DIR/snp_matrix_imputed.hmp.txt.
     -filterAlignMinCount 10 \
     -export $FILTERED_SNP_OUT
 
-$OUT_DIR/snp_matrix_imputed.hmp.txt.gz
-
 run_pipeline.pl -Xmx60g -importGuess $OUT_DIR/snp_matrix_imputed.hmp.txt.gz \
 -genotypeSummary all -export $OUT_DIR/snp_genotypeSummary
-
 
 # Ensure the steps below use the filtered SNPs output
 # Numeric Allele Counts for filtered SNPs
@@ -63,15 +73,8 @@ run_pipeline.pl -Xmx60g -fork1 -importGuess $OUT_DIR/snp_matrix_imputed.hmp.txt.
 
 echo "TASSEL SNP analysis completed."
 
-# Process for indels starts here
-
-# Set path for annotated indels VCF
-ANNOTATED_INDELS_VCF="5_annotation/snpEff_indels/geno_filtered_indels.ann.vcf.gz"
-INDEL_OUT_DIR="6_tassel_analysis_indels"
-mkdir -p $INDEL_OUT_DIR
-
-# Convert annotated indels VCF to TASSEL format
-gunzip -c $ANNOTATED_INDELS_VCF > $INDEL_OUT_DIR/temp_indels.vcf
+# Convert filtered indel VCF to TASSEL format
+gunzip -c $INDEL_OUT_DIR/filtered_indels.vcf.gz > $INDEL_OUT_DIR/temp_indels.vcf
 run_pipeline.pl -Xmx60g -importGuess $INDEL_OUT_DIR/temp_indels.vcf -export $INDEL_OUT_DIR/indel_tassel
 rm $INDEL_OUT_DIR/temp_indels.vcf
 
@@ -87,9 +90,7 @@ run_pipeline.pl -Xmx60g -fork1 -importGuess $INDEL_OUT_DIR/indel_snp_matrix_impu
     -filterAlign -filterAlignMinFreq 0.05 -filterAlignMaxFreq 0.95 \
     -filterAlignMinCount 10 -export $FILTERED_INDEL_OUT
 
-
-run_pipeline.pl -Xmx60g -importGuess  $INDEL_OUT_DIR/indel_snp_matrix_imputed.hmp.txt.gz -genotypeSummary all -export $INDEL_OUT_DIR/indel_genotypeSummary
-
+run_pipeline.pl -Xmx60g -importGuess $INDEL_OUT_DIR/indel_snp_matrix_imputed.hmp.txt.gz -genotypeSummary all -export $INDEL_OUT_DIR/indel_genotypeSummary
 
 # Ensure the steps below use the filtered indels output
 # Numeric Allele Counts for filtered indels
