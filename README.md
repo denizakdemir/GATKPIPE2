@@ -1,6 +1,6 @@
 # GATKPIPE2
 
-A bioinformatics pipeline for analyzing *Zymoseptoria tritici* sequencing data, closely following the GATK variant calling best practices (Van der Auwera & O'Connor, 2020; Poplin et al., 2017). 
+A bioinformatics pipeline for analyzing *Zymoseptoria tritici* sequencing data, closely following the GATK variant calling best practices (Van der Auwera & O'Connor, 2020; Poplin et al., 2017).
 
 ## Pipeline Overview
 
@@ -29,16 +29,28 @@ This pipeline integrates robust tools and methodologies, adhering to bioinformat
 
 Folders other than `slurmscripts` are empty and are present to establish the directory structure. All the code is located in the `slurmscripts` folder.
 
-## References
+### Data Placement
 
-- Bolger, A. M., Lohse, M., & Usadel, B. (2014). Trimmomatic: a flexible trimmer for Illumina sequence data. Bioinformatics, 30(15), 2114-2120. [DOI: 10.1093/bioinformatics/btu170](https://doi.org/10.1093/bioinformatics/btu170)
+Please place the relevant data files in the following directories:
 
-- McKenna, A., Hanna, M., Banks, E., Sivachenko, A., Cibulskis, K., Kernytsky, A., Garimella, K., Altshuler, D., Gabriel, S., Daly, M., & DePristo, M. A. (2010). The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research, 20(9), 1297-1303. [DOI: 10.1101/gr.107524.110](https://doi.org/10.1101/gr.107524.110)
+1. **Raw FASTQ Files:**
+   - `1_data/fastq_set1`: Place the `X204SC22100973-Z01-F001.tar` file here.
+   - `1_data/fastq_set2`: Place the `X204SC22100973-Z01-F002.tar` file here.
 
-- DePristo, M. A., Banks, E., Poplin, R., Garimella, K. V., Maguire, J. R., Hartl, C., Philippakis, A. A., del Angel, G., Rivas, M. A., Hanna, M., McKenna, A., Fennell, T. J., Kernytsky, A. M., Sivachenko, A. Y., Cibulskis, K., Gabriel, S. B., Altshuler, D., & Daly, M. J. (2011). A framework for variation discovery and genotyping using next-generation DNA sequencing data. Nature Genetics, 43(5), 491-498. [DOI: 10.1038/ng.806](https://doi.org/10.1038/ng.806)
+2. **Reference Genomes:**
+   - `1_data/referenceIPO323`: Place the `Zymoseptoria_tritici.MG2.dna.toplevel.fa.gz` file here.
+   - `1_data/reference3D7`: Place the `Zymoseptoria_tritici_st99ch_3d7_gca_900091695.Zt_ST99CH_3D7.dna.toplevel.fa.gz` file here.
 
-- Poplin, R., Ruano-Rubio, V., DePristo, M. A., Fennell, T. J., Carneiro, M. O., Van der Auwera, G. A., Kling, D. E., Gauthier, L. D., Levy-Moonshine, A., Roazen, D., Shakir, K., Thibault, J., Chandran, S., Whelan, C., Lek, M., Gabriel, S., Daly, M. J., Neale, B., MacArthur, D. G., & Banks, E. (2017). Scaling accurate genetic variant discovery to tens of thousands of samples. bioRxiv, 201178. [DOI: 10.1101/201178](https://doi.org/10.1101/201178)
+You can use the `get_reference_stp3.sh` script and run it in the terminal to download the reference genome files.
 
-- Van der Auwera, G. A., & O'Connor, B. D. (2020). Genomics in the Cloud: Using Docker, GATK, and WDL in Terra (1st Edition). O'Reilly Media.
+### Unzipping Instructions
 
-- Bradbury PJ, Zhang Z, Kroon DE, Casstevens TM, Ramdoss Y, Buckler ES. (2007). TASSEL: Software for association mapping of complex traits in diverse samples. Bioinformatics 23:2633-2635. [DOI: 10.1093/bioinformatics/btm308](https://doi.org/10.1093/bioinformatics/btm308)
+To unzip the files and prepare them for the pipeline, run the following script in the terminal:
+
+```bash
+# STP1_GATKPIPE_PrepData.sh is a bash script to be run in the terminal
+# To run this script, type the following command in the terminal, from the directory containing the script:
+# bash slurmscripts/STP1_GATKPIPE_PrepData.sh
+```
+
+The remaining steps are to be run on an HPC cluster using **sbatch**.
