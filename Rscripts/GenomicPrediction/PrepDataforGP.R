@@ -6,28 +6,41 @@ pacman::p_load(
 )
 
 
-load("DataforPillar/DataforPillarGWAS.RData")
-GenoSep<-GenoMat13_thinned
-MapSep<-mapping13_thinned
-rm(GenoMat13_thinned, mapping13_thinned)
+load("Pheno_geno_Map_PillarTraits.RData")
 
-GenoSep[1:5,1:5]
+
+genoImp[1:5,1:5]
+pcs2022[1:5,]
+pcs2023[1:5,]
+
+Pcs<-rbind(pcs2022,pcs2023)
+intersect(Pcs$Taxa, rownames(genoImp))
+
+pcs2023$Taxa[1:5]
+rownames(genoImp)[1:5]
+intersect(pcs2023$Taxa,rownames(genoImp))
+intersect(pcs2023$Taxa, pcs2022$Taxa)
+intersect(rownames(genoImp),Pcs$Taxa)
+Pcs<-Pcs[match(rownames(genoImp),Pcs$Taxa),]
+Pcs[1:10,]
+rownames(genoImp)<-Pcs$Isolate
+
 
 mix1<-c("22_EcijaSec83Ica_L2", "22_EcijaSecCris_L1", "22_EcijaRegTej_L1")
-intersect(mix1, rownames(GenoSep))
+intersect(mix1, rownames(genoImp))
 mix2<-c("22_CorKiko_L1", "22_CorCale_L1", "22_Cor3927_L1")
-intersect(mix2, rownames(GenoSep))
+intersect(mix2, rownames(genoImp))
 mix3<-c("22_ConilAmi_L1", "22_Conil3806_L1", "22_Jerez3927_L1")
-intersect(mix3, rownames(GenoSep))
+intersect(mix3, rownames(genoImp))
 mix4<-c("22_CorVal_L1")
-intersect(mix4, rownames(GenoSep))
+intersect(mix4, rownames(genoImp))
 
 Mixes<-list(mix1, mix2, mix3, mix4)
 
 gentmeangeno<-function(mix){
-  mix<-intersect(mix, rownames(GenoSep))
+  mix<-intersect(mix, rownames(genoImp))
   print(mix)
-  matMix<-GenoSep[rownames(GenoSep)%in%mix,]
+  matMix<-genoImp[rownames(genoImp)%in%mix,]
   if (length(mix)>1){
    meanGeno<-colMeans(matMix)
   } else {
@@ -36,13 +49,18 @@ gentmeangeno<-function(mix){
   return(meanGeno)
 }
 
-MixGenoSep<-t(sapply(Mixes, gentmeangeno))
+MixgenoImp<-t(sapply(Mixes, gentmeangeno))
 
-dim(MixGenoSep)
-MixGenoSep[1:4,1:5]
-rownames(MixGenoSep)<-c("mix1", "mix2", "mix3", "mix4")
+dim(MixgenoImp)
+MixgenoImp[1:4,1:5]
+rownames(MixgenoImp)<-c("mix1", "mix2", "mix3", "mix4")
 
-KmatSepMix<-rrBLUP::A.mat(MixGenoSep-1)
+
+genoImpwithMixes<-rbind(genoImp,MixgenoImp)
+dim(genoImpwithMixes)
+genoImpwithMixes<-genoImpwithMixes[!duplicated(rownames(genoImpwithMixes)),]
+
+KmatSepMix<-rrBLUP::A.mat(genoImpwithMixes-1)
 heatmap(KmatSepMix, symm = TRUE, scale = "none", col = colorRampPalette(c("white", "blue"))(100), margins = c(10, 10))
 round(KmatSepMix, 2)
 
@@ -88,7 +106,7 @@ setdiff(Pheno17cm$Plant, rownames(KmatWheat))
 setdiff(rownames(KmatWheat), Pheno17cm$Plant)
 
 # save wheat and septoria data
-save(GenoWheat, MapWheat, KmatWheat, Pheno12cm, Pheno17cm,GenoSep, KmatSep,MapSep,KmatSepMix, file = "DataforGenomicPrediction.RData")
+save(GenoWheat, MapWheat, KmatWheat, Pheno12cm, Pheno17cm,genoImp,SNPMAP,KmatSepMix, file = "DataforGenomicPrediction.RData")
 
 rm(list = ls())
 gc()

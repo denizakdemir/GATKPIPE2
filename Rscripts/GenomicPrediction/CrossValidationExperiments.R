@@ -57,11 +57,16 @@ hist(Pheno17cmImpAgg$PLACL)
 # 3- Leave one mix out for validation and 20% of the wheat lines out for validation
 # this will be repeated 10 times for each strategy
 
+KmatSepAll<-KmatSepMix
+KmatSepMix<-KmatSepAll[c("mix1","mix2","mix3","mix4"),c("mix1","mix2","mix3","mix4") ]
 
 KmatSepMixDiag<-diag(nrow(KmatSepMix))
 rownames(KmatSepMixDiag)<-colnames(KmatSepMixDiag)<-rownames(KmatSepMix)
 KmatWheatDiag<-diag(nrow(KmatWheat))
 rownames(KmatWheatDiag)<-colnames(KmatWheatDiag)<-rownames(KmatWheat)
+
+###################################################################
+
 
 
 runGenomicPredictionStrategy <- function(traitName, kinshipMatrixWheat, kinshipMatrixMix, phenotypeData12cm, phenotypeData17cm) {
@@ -1033,56 +1038,86 @@ corsoverwheat<-apply(alldata,1,function(x)cor(x[1:4],x[5:8]))
 
 ##############################################GWAS for this phenotype. 
 source("../gapit_functions.txt")  # GAPIT functions
-models=c("FarmCPU", "Blink")
+models=c("Blink")
 
 
+GenoWheat[1:5,1:5]
 
-
+tGenoWheat<-t(GenoWheat)
+tGenoWheat[1:5,1:5]
+tGenoWheat<-tGenoWheat[!duplicated(tGenoWheat),]
+dim(tGenoWheat)
+GenoWheat<-t(tGenoWheat)
+GenoWheat[1:5,1:5]
+Pheno12cmImpAgg[1:5,]
+KmatGapit<-rrBLUP::A.mat(GenoWheat-1)
+KmatGapit[1:5,1:5]
+KmatGapit<-data.frame(taxa=rownames(KmatGapit), as.data.frame(KmatGapit))
+colnames(KmatGapit)<-NULL
+rownames(KmatGapit)<-NULL
+GenoWforGAPIT<-cbind(data.frame(taxa=rownames(GenoWheat)),as.data.frame(GenoWheat))
+MapWheatGapit<-MapWheat
+MapWheatGapit[1:5,]
+colnames(MapWheatGapit)<-c("Name","Chromosome", "Position")
+MapWheatGapit<-MapWheatGapit[MapWheatGapit$Name%in%colnames(GenoWheat),]
+Pheno12cmGAPIT<-Pheno12cmImpAgg[,-2]
+colnames(Pheno12cmGAPIT)[1]<-"taxa"
+Pheno12cmImpAgg$Strain<-drop.levels(Pheno12cmImpAgg$Strain)
+Pheno12cmGAPITFixed<-as.data.frame(model.matrix(~Strain, data=Pheno12cmImpAgg))[,-1]
+Pheno12cmGAPITFixed<-cbind(data.frame(taxa=Pheno12cmGAPIT$taxa), Pheno12cmGAPITFixed)
+Pheno12cmGAPITFixed[1:5,]
 # Assuming you start in the root directory where you want to create subdirectories
 initial_dir <- getwd()
 
 # Array to hold the number of principal components to be used in each analysis
-pc_values <- c(2,5)
+pc_values <- c(0,2, 5)
 
 # Model types to be used
-models <- c("FarmCPU", "Blink")
+models <- c("MLMM", "Blink")
 
 # Loop through each principal component setting
 for (pc in pc_values) {
-  # Create a directory name based on the principal component
-  dir_name <- paste("GWAS_resultsForPilarsTraitsApr25_", pc, "PC", sep="")
-  
-  # Check if the directory exists, if not create it
-  if (!dir.exists(dir_name)) {
-    dir.create(dir_name, recursive = TRUE)
+  # Loop through model types
+  for (model in models) {
+    # Loop through with and without Kinship matrix (K)
+    for (use_K in c(TRUE, FALSE)) {
+      # Create a directory name based on the principal component and Kinship usage
+      K_label <- ifelse(use_K, "withK", "withoutK")
+      dir_name <- paste("GWAS_results_WheatJune25_", pc, "PC_", model, "_", K_label, sep = "")
+      
+      # Check if the directory exists, if not create it
+      if (!dir.exists(dir_name)) {
+        dir.create(dir_name, recursive = TRUE)
+      }
+      
+      # Set the working directory to the new directory
+      setwd(file.path(initial_dir, dir_name))
+      
+      # Determine the Kinship matrix input based on the use_K flag
+      if (use_K){Kmat_input <-KmatGapit } else {Kmat_input<-NULL}
+      
+      # Run the GAPIT function
+      tmp <- capture.output({
+        GAPIT(
+          Y = Pheno12cmGAPIT,
+          GD = GenoWforGAPIT,
+          GM = MapWheatGapit,
+          KI = Kmat_input,
+          CV = Pheno12cmGAPITFixed,
+          PCA.total = pc,
+          model = model,
+          file.output = TRUE,
+          cutOff = 0.1
+        )
+      })
+      
+      # Go back to the initial directory
+      setwd(initial_dir)
+    }
   }
-  
-  # Set the working directory to the new directory
-  setwd(file.path(initial_dir, dir_name))
-  
-  # Run the GAPIT function
-  tmp <- capture.output({
-    GAPIT(
-      Y = BLUPS,
-      GD = GenoMat13_thinned,
-      GM = mapping13_thinned,
-      KI = Kmat,
-      CV = NULL,
-      PCA.total = pc,
-      model = models,
-      file.output = TRUE,
-      cutOff = 0.1
-    )
-  })
-  
-  # Go back to the initial directory
-  setwd(initial_dir)
 }
 
 # Optionally print a message when the loop is complete
-cat("GAPIT analysis complete for all principal component settings.\n")
-
-
-
+cat("GAPIT analysis complete for all principal component settings and models.\n")
 
 boxplot(corsoverwheat)

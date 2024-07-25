@@ -59,13 +59,21 @@ save(genoImp, file="ImputedGeno119Genotypes.RData")
 rm(geno)
 gc()
 
+load("ImputedGeno119Genotypes.RData")
+
 svdG<-svd(scale(genoImp, scale=FALSE, center=TRUE), nu=5,nv=5)
 pcs<-scale(genoImp, scale=FALSE, center=TRUE)%*%svdG$v
 pcs<-cbind(data.frame(Taxa=rownames(pcs)), pcs)
 colnames(pcs)[2:6]<-paste("PC",1:5, sep="")
 
 pcs$Year<-ifelse(grepl("EKDN2300427", pcs$Taxa), "2023", "2022")
+pcs[1:5,]
 
+table(pcs$Year)
+
+pcs$Taxa
+
+unique(pcs$Taxa)
 save(pcs, file="PCsforGeno119Genotypes.RData")
 
 rownames(pcs)
@@ -84,6 +92,8 @@ pcs2022$TaxaShort
 pcs2023$TaxaShort<-gsub("combined_", "", pcs2023$Taxa)
 pcs2023$TaxaShort
 
+intersect(pcs2023$Taxa,pcs2022$Taxa)
+
 pcs2022$TaxaShort<-substr(pcs2022$Taxa, 1, 4)
 pcs2023$TaxaShort<-substr(pcs2023$Taxa, 1, 4)
 
@@ -95,7 +105,7 @@ pcs2023$TaxaShort<-gsub("_.*", "", pcs2023$TaxaShort)
 pcs2022<-pcs2022[order(as.numeric(gsub("S", "", pcs2022$TaxaShort))),]
 pcs2022$Taxa
 
-pcs2023<-pcs2022[order(as.numeric(gsub("S", "", pcs2023$TaxaShort))),]
+pcs2023<-pcs2023[order(as.numeric(gsub("S", "", pcs2023$TaxaShort))),]
 pcs2023$Taxa
 
 

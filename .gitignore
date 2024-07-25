@@ -58,3 +58,40 @@ ProcessedVCFs/
 *.vcf.gz
 
 
+PhenoData/
+DataforPillar/
+documentation/
+GenotypeTables/
+DataforPillarApr26/
+May27thGWASAnalysisMAF0_1/
+May27thGWASAnalysisMAF0_1 _withLD/
+May27thGWASAnalysisMAF0_05/
+Presentations/
+ProcessedVCFs/
+Rscripts/
+
+pcaplot100withnamesinPheno.png
+
+*.png
+*.pdf
+*.html
+*.RData
+*.csv
+*.vcf
+PrepDataforGP.R 
+
+May27thGWASAnalysisMAF0_05/
+PrepGwasDataGreenHouse_0_05.r 
+May27thGWASAnalysisMAF0_1/
+PrepGwasDataPillarsTraits_0_05.r 
+.DS_Store
+
+CrossValidationExperiments.R
+
+Rscripts/*.*
+PrepDataforGP.R
+Rscripts/GenomicPrediction/*.*
+
+May27thGWASAnalysisMAF0_05/*.*
+May27thGWASAnalysisMAF0_1/*.*
+

@@ -11,7 +11,6 @@ pacman::p_load(
 pacman::p_load_gh("SFUStatgen/LDheatmap")  # For LDheatmap from GitHub
 source("gapit_functions.txt")  # GAPIT functions
 
-
 load("ImputedGeno119Genotypes.RData")
 load("PCsforGeno119Genotypes.RData")
 
@@ -92,8 +91,8 @@ for (i in 1:nrow(phenotypes)) {
 
 # Ensure all required columns exist in the phenotypes dataframe
 required_columns <- c("Isolate", "leave_id", "REP", "WheatGeno", "Year", "PLACL", "pycnidiaPerCm2Leaf",
-                      "pycnidiaPerCm2Lesion", "necrosisArea", "pycnidiaCount", "leafArea",
-                      "meanPycnidiaArea", "pycnidiaGreyValue")
+                      "pycnidiaPerCm2Lesion")
+
 
 missing_columns <- setdiff(required_columns, colnames(phenotypes))
 if (length(missing_columns) > 0) {
