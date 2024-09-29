@@ -49,7 +49,7 @@ OUTPUT_DIR="extracted_sequences"
 mkdir -p ${OUTPUT_DIR}
 
 # Define SNP positions
-SNP_POSITIONS=("3:1981524" "7:2122986" "2:3164588")
+SNP_POSITIONS=("3:249890-250273")
 
 # Iterate over individual VCF files
 for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
@@ -82,7 +82,7 @@ mkdir -p ${OUTPUT_DIR}
 mkdir -p ${OUTPUT_DIR_CONSENSUS}
 
 # Define regions (same as before)
-REGIONS=("3:1981024-1982024" "7:2122486-2123486" "2:3164088-3165088")
+REGIONS=("3:249890-250273")
 
 # Initialize or clear region-specific consensus FASTA files
 for REGION in "${REGIONS[@]}"; do
