@@ -51,7 +51,7 @@ for REGION in "${REGIONS[@]}"; do
     START=${POS[0]}
     END=${POS[1]}
     REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/consensus_${CHROM}_${START}_${END}.fasta"
-    > ${REGION_FASTA_FILE} # Clear the file if exists or create it if not
+    > ${REGION_FASTA_FILE} # Clear the file if it exists or create it if not
 done
 
 # Iterate over VCF files that have 'sorted_md' in their names
