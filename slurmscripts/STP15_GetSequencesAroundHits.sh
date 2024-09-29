@@ -23,7 +23,7 @@ mkdir -p ${OUTPUT_DIR}
 
 
 # Define regions to extract - 500bp flanking regions
-REGIONS=("3:249890-250273")  # "7:2122486-2123486" "2:3164088-3165088")
+REGIONS=("3:247434-251178")  # "7:2122486-2123486" "2:3164088-3165088")
 
 # Extract SNP positions and create BED files
 for REGION in "${REGIONS[@]}"; do
@@ -49,7 +49,8 @@ OUTPUT_DIR="extracted_sequences"
 mkdir -p ${OUTPUT_DIR}
 
 # Define SNP positions
-SNP_POSITIONS=("3:249890-250273")
+SNP_POSITIONS=("3:247434-251178")
+
 
 # Iterate over individual VCF files
 for VCF_FILE in ${VCF_DIR}/S*.vcf.gz; do
