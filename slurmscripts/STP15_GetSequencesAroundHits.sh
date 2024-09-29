@@ -34,6 +34,10 @@ REGIONS=("3:247434-251178")
 # Initialize the combined output file with a header
 echo -e "SeqName\tChromosome\tLocation\tReferenceAllele" > ${COMBINED_OUTPUT_FILE}
 
+# Prepare a temporary file to store combined genotype data
+TEMP_COMBINED_FILE="temp_combined_output.tsv"
+> ${TEMP_COMBINED_FILE}  # Clear the file before starting
+
 # Process only files with "sorted_md" in their names
 for VCF_FILE in ${VCF_DIR}/*sorted_md*.vcf.gz; do
     # Extract the strain name from the VCF filename
@@ -56,7 +60,7 @@ for VCF_FILE in ${VCF_DIR}/*sorted_md*.vcf.gz; do
         END=${POS[1]}
         REGION_STR="${CHROM}:${START}-${END}"
         
-        # Define temporary files
+        # Define temporary VCF and FASTA files
         TEMP_VCF="${VCF_OUTPUT_DIR}/${STRAIN_NAME}_${CHROM}_${START}_${END}.vcf"
         REGION_FASTA_FILE="${CONSENSUS_DIR}/consensus_${CHROM}_${START}_${END}.fasta"
         
@@ -64,15 +68,17 @@ for VCF_FILE in ${VCF_DIR}/*sorted_md*.vcf.gz; do
         bcftools view -Oz -o ${TEMP_VCF}.gz -r ${REGION_STR} ${VCF_FILE}
         bcftools index ${TEMP_VCF}.gz
         
-        # Extract genotype information for the combined output
-        bcftools query -f '%CHROM\t%POS\t%REF[\t%GT]\n' -r ${REGION_STR} ${TEMP_VCF}.gz | awk -v strain=${STRAIN_NAME} '{print $1 "\t" $2 "\t" $3 "\t" $strain ":" $4}' >> temp_combined_output.tsv
+        # Extract genotype information and append to temporary combined file
+        bcftools query -f '%CHROM\t%POS\t%REF[\t%GT]\n' -r ${REGION_STR} ${TEMP_VCF}.gz | \
+        awk -v strain=${STRAIN_NAME} '{print $1 "\t" $2 "\t" $3 "\t" $4}' | \
+        paste -d '\t' - ${TEMP_COMBINED_FILE} > temp_output.tsv && mv temp_output.tsv ${TEMP_COMBINED_FILE}
     done
 done
 
-# Combine all genotype data into the final output
-awk 'FNR==NR{a[$1 FS $2]=$3; next} {print $0, a[$1 FS $2]}' temp_combined_output.tsv >> ${COMBINED_OUTPUT_FILE}
+# Combine the final genotype data into the combined output file
+awk 'FNR==NR{a[$1 FS $2]=$3; next} {print $0, a[$1 FS $2]}' ${TEMP_COMBINED_FILE} >> ${COMBINED_OUTPUT_FILE}
 
 # Clean up temporary files
-rm temp_combined_output.tsv
+rm ${TEMP_COMBINED_FILE}
 
 echo "Combined genotype extraction and sequence alignment completed."
