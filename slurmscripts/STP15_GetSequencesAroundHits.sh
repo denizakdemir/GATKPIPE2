@@ -23,7 +23,7 @@ mkdir -p ${OUTPUT_DIR}
 
 
 # Define regions to extract - 500bp flanking regions
-REGIONS=("3:1981024-1982024" "7:2122486-2123486" "2:3164088-3165088")
+REGIONS=("3:249890-250273")  # "7:2122486-2123486" "2:3164088-3165088")
 
 # Extract SNP positions and create BED files
 for REGION in "${REGIONS[@]}"; do
