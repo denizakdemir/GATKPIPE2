@@ -82,6 +82,12 @@ for VCF_FILE in ${VCF_DIR}/*sorted_md*.vcf.gz; do
         # Generate a temporary consensus sequence
         bcftools consensus -f ${REGION_FILE} -o temp_consensus.fasta ${TEMP_VCF}.gz
 
+        # Check if the temp_consensus.fasta is empty (i.e., no variations found)
+        if [ ! -s temp_consensus.fasta ]; then
+            # If no variations, use the reference sequence as the consensus
+            cp ${REGION_FILE} temp_consensus.fasta
+        fi
+
         # Add header with strain name to the temporary consensus sequence
         echo ">${STRAIN_NAME}" > temp_header.fasta
         cat temp_consensus.fasta >> temp_header.fasta
