@@ -55,7 +55,7 @@ for REGION in "${REGIONS[@]}"; do
 done
 
 # Iterate over VCF files that have 'sorted_md' in their names
-for VCF_FILE in ${VCF_DIR}/*sorted_md*.vcf.gz; do
+for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
     STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
 
     # Ensure the VCF file is indexed
@@ -99,5 +99,3 @@ for VCF_FILE in ${VCF_DIR}/*sorted_md*.vcf.gz; do
         rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi temp_consensus.fasta temp_header.fasta
     done
 done
-
-echo "Consensus sequence compilation for individual strains completed."
