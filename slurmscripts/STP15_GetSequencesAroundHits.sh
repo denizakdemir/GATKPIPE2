@@ -54,7 +54,6 @@ for REGION in "${REGIONS[@]}"; do
     > ${REGION_FASTA_FILE} # Clear the file if it exists or create it if not
 done
 
-# Iterate over VCF files that have 'sorted_md' in their names
 for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
     STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
 
@@ -64,7 +63,6 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
     fi
 
     for REGION in "${REGIONS[@]}"; do
-        # Define variables for region-specific operations
         IFS=':' read -ra ADDR <<< "$REGION"
         CHROM=${ADDR[0]}
         IFS='-' read -ra POS <<< "${ADDR[1]}"
@@ -76,17 +74,26 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
         REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/consensus_${CHROM}_${START}_${END}.fasta"
 
         # Filter VCF for the specific region
+        echo "Filtering region ${REGION_STR} for strain ${STRAIN_NAME}..."
         bcftools view -Oz -o ${TEMP_VCF}.gz -r ${REGION_STR} ${VCF_FILE}
         bcftools index ${TEMP_VCF}.gz
-
-        # Generate a temporary consensus sequence
-        bcftools consensus -f ${REGION_FILE} -o temp_consensus.fasta ${TEMP_VCF}.gz
-
-        # Check if the temp_consensus.fasta is empty (i.e., no variations found)
-        if [ ! -s temp_consensus.fasta ]; then
-            # If no variations, use the reference sequence as the consensus
+        
+        # Debug: check the number of variations in the region
+        VAR_COUNT=$(bcftools view -r ${REGION_STR} ${VCF_FILE} | grep -v "^#" | wc -l)
+        echo "Found ${VAR_COUNT} variations in region ${REGION_STR} for strain ${STRAIN_NAME}"
+        
+        # If no variations found, skip consensus generation for this region
+        if [ ${VAR_COUNT} -eq 0 ]; then
+            echo "No variations found in region ${REGION_STR} for strain ${STRAIN_NAME}, using reference sequence."
             cp ${REGION_FILE} temp_consensus.fasta
+        else
+            # Generate a temporary consensus sequence
+            bcftools consensus -f ${REGION_FILE} -o temp_consensus.fasta ${TEMP_VCF}.gz
         fi
+
+        # Debug: check contents of the temp_consensus.fasta
+        echo "Consensus sequence for ${STRAIN_NAME} in region ${REGION_STR}:"
+        cat temp_consensus.fasta
 
         # Add header with strain name to the temporary consensus sequence
         echo ">${STRAIN_NAME}" > temp_header.fasta
