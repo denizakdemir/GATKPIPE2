@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=ExtractSequences
-#SBATCH --output=ExtractSequences_%j.log
-#SBATCH --error=ExtractSequences_%j.err
+#SBATCH --job-name=ExtractVCFSequences
+#SBATCH --output=ExtractVCFSequences_%j.log
+#SBATCH --error=ExtractVCFSequences_%j.err
 #SBATCH --partition=medium
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -12,70 +12,34 @@
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
 # Load required modules
-module load BCFtools
-module load BEDTools
+module load BCFtools/1.9-GCC-8.2.0-2.31.1
 
 # Define variables
-REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
 VCF_DIR="4_processing/GVCF"
 OUTPUT_DIR="extracted_sequences"
 OUTPUT_DIR_CONSENSUS="${OUTPUT_DIR}/consensus_sequences"
 mkdir -p ${OUTPUT_DIR}
 mkdir -p ${OUTPUT_DIR_CONSENSUS}
 
-# Define regions to extract
+# Define the region to extract
 REGIONS=("3:247434-251178")
 
-# Extract SNP positions and create BED files
+# Initialize or clear region-specific consensus FASTA file
 for REGION in "${REGIONS[@]}"; do
     IFS=':' read -ra ADDR <<< "$REGION"
     CHROM=${ADDR[0]}
     IFS='-' read -ra POS <<< "${ADDR[1]}"
     START=${POS[0]}
     END=${POS[1]}
-
-    echo "Processing region ${REGION} (${CHROM}:${START}-${END})"
-
-    # Create a bed file for each region
-    BED_FILE="${OUTPUT_DIR}/${CHROM}_${START}_${END}.bed"
-    echo -e "${CHROM}\t${START}\t${END}" > "${BED_FILE}"
-    echo "Created BED file: ${BED_FILE}"
-
-    # Extract reference sequence using bedtools
-    FASTA_FILE="${OUTPUT_DIR}/${CHROM}_${START}_${END}.fasta"
-    bedtools getfasta -fi "${REFERENCE_GENOME}" -bed "${BED_FILE}" -fo "${FASTA_FILE}"
-    echo "Extracted reference sequence to: ${FASTA_FILE}"
-
-    if [ ! -s "${FASTA_FILE}" ]; then
-        echo "Error: Reference sequence extraction failed for region ${REGION}."
-        exit 1
-    fi
+    REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/vcf_sequences_${CHROM}_${START}_${END}.fasta"
+    > ${REGION_FASTA_FILE} # Clear or initialize the file
+    echo "Initialized VCF-based sequence FASTA file: ${REGION_FASTA_FILE}"
 done
 
-echo "Reference sequence extraction completed."
-
-# Initialize or clear the consensus FASTA file
-for REGION in "${REGIONS[@]}"; do
-    IFS=':' read -ra ADDR <<< "$REGION"
-    CHROM=${ADDR[0]}
-    IFS='-' read -ra POS <<< "${ADDR[1]}"
-    START=${POS[0]}
-    END=${POS[1]}
-    REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/consensus_${CHROM}_${START}_${END}.fasta"
-    > ${REGION_FASTA_FILE}
-    echo "Initialized consensus FASTA file: ${REGION_FASTA_FILE}"
-done
-
-# Loop through VCF files and generate consensus sequences
+# Loop through VCF files and extract variant sequences for each strain
 for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
     STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
     echo "Processing VCF file: ${VCF_FILE} (Strain: ${STRAIN_NAME})"
-
-    # Ensure the VCF file is indexed
-    if [ ! -f "${VCF_FILE}.tbi" ]; then
-        echo "Indexing VCF file: ${VCF_FILE}"
-        bcftools index ${VCF_FILE}
-    fi
 
     for REGION in "${REGIONS[@]}"; do
         IFS=':' read -ra ADDR <<< "$REGION"
@@ -84,43 +48,40 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
         START=${POS[0]}
         END=${POS[1]}
         REGION_STR="${CHROM}:${START}-${END}"
-        REGION_FILE="${OUTPUT_DIR}/${CHROM}_${START}_${END}.fasta"
-        TEMP_VCF="${OUTPUT_DIR}/${STRAIN_NAME}_${CHROM}_${START}_${END}.vcf"
-        REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/consensus_${CHROM}_${START}_${END}.fasta"
+        REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/vcf_sequences_${CHROM}_${START}_${END}.fasta"
 
-        echo "Processing region: ${REGION_STR} for strain ${STRAIN_NAME}"
+        # Filter VCF for the specific region and extract sequences
+        echo "Extracting variant information for region: ${REGION_STR}"
 
-        # Filter VCF for the specific region
-        echo "Filtering VCF file for region: ${REGION_STR}"
-        bcftools view -Oz -o ${TEMP_VCF}.gz -r ${REGION_STR} ${VCF_FILE}
-        bcftools index ${TEMP_VCF}.gz
+        # Extract sequence based on genotype
+        bcftools query -r ${REGION_STR} -f '[%CHROM:%POS %REF %ALT %GT\n]' ${VCF_FILE} > temp_variants.txt
 
-        # Check the number of variants in the VCF for this region
-        VARIANT_COUNT=$(bcftools view -r ${REGION_STR} ${VCF_FILE} | grep -v "^#" | wc -l)
-        echo "Strain ${STRAIN_NAME} has ${VARIANT_COUNT} variants in region ${REGION_STR}"
+        # Build sequence for the strain by interpreting the genotypes
+        echo ">${STRAIN_NAME}" >> ${REGION_FASTA_FILE}
+        SEQUENCE=""
+        while read -r LINE; do
+            CHROM_POS=$(echo "$LINE" | cut -d ' ' -f 1)
+            REF=$(echo "$LINE" | cut -d ' ' -f 2)
+            ALT=$(echo "$LINE" | cut -d ' ' -f 3)
+            GENOTYPE=$(echo "$LINE" | cut -d ' ' -f 4)
 
-        # Generate the consensus sequence
-        echo "Generating consensus sequence for strain ${STRAIN_NAME}"
-        bcftools consensus -f ${REGION_FILE} -o temp_consensus.fasta ${TEMP_VCF}.gz
+            # Use REF for homozygous reference (0/0), ALT for homozygous alternate (1/1), and a random choice for heterozygous (0/1)
+            if [[ "$GENOTYPE" == "0/0" ]]; then
+                SEQUENCE+="$REF"
+            elif [[ "$GENOTYPE" == "1/1" ]]; then
+                SEQUENCE+="$ALT"
+            elif [[ "$GENOTYPE" == "0/1" ]]; then
+                SEQUENCE+="$ALT"  # You could choose to randomly pick REF or ALT if necessary
+            fi
+        done < temp_variants.txt
 
-        # Check if the consensus sequence is empty
-        if [ ! -s temp_consensus.fasta ]; then
-            echo "No consensus sequence for strain ${STRAIN_NAME}, using reference."
-            cp ${REGION_FILE} temp_consensus.fasta
-        else
-            echo "Consensus sequence for strain ${STRAIN_NAME} generated."
-        fi
+        # Write the final sequence to the FASTA file
+        echo "$SEQUENCE" >> ${REGION_FASTA_FILE}
+        echo "Appended sequence for strain ${STRAIN_NAME} to ${REGION_FASTA_FILE}"
 
-        # Append the consensus sequence with a header to the consensus FASTA file
-        if [ -s temp_consensus.fasta ]; then
-            echo ">${STRAIN_NAME}" >> ${REGION_FASTA_FILE}
-            cat temp_consensus.fasta >> ${REGION_FASTA_FILE}
-            echo "Appended consensus sequence to ${REGION_FASTA_FILE}"
-        else
-            echo "Skipping strain ${STRAIN_NAME} due to empty consensus sequence."
-        fi
-
-        # Clean up temporary files
-        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi temp_consensus.fasta
+        # Clean up
+        rm temp_variants.txt
     done
 done
+
+echo "Sequence extraction from VCF completed."
