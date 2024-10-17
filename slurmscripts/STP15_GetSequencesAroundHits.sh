@@ -12,8 +12,8 @@
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
 echo "Loading required modules..."
-module load BCFtools/1.9-GCC-8.2.0-2.31.1
-module load BEDTools/2.28.0-GCC-8.2.0-2.31.1
+module load BCFtools
+module load BEDTools
 
 # Define variables
 REFERENCE_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
