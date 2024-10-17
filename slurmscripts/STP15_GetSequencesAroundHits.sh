@@ -36,10 +36,17 @@ for REGION in "${REGIONS[@]}"; do
     echo "Initialized VCF-based sequence FASTA file: ${REGION_FASTA_FILE}"
 done
 
+# Create an empty file to track processed VCF files
+PROCESSED_VCF_FILES="${OUTPUT_DIR_CONSENSUS}/processed_vcf_files.txt"
+> ${PROCESSED_VCF_FILES}
+
 # Loop through VCF files and extract variant sequences for each strain
 for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
     STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
     echo "Processing VCF file: ${VCF_FILE} (Strain: ${STRAIN_NAME})"
+    
+    # Add the VCF file name to the processed file list
+    echo "${VCF_FILE}" >> ${PROCESSED_VCF_FILES}
 
     for REGION in "${REGIONS[@]}"; do
         IFS=':' read -ra ADDR <<< "$REGION"
@@ -63,25 +70,4 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
             CHROM_POS=$(echo "$LINE" | cut -d ' ' -f 1)
             REF=$(echo "$LINE" | cut -d ' ' -f 2)
             ALT=$(echo "$LINE" | cut -d ' ' -f 3)
-            GENOTYPE=$(echo "$LINE" | cut -d ' ' -f 4)
-
-            # Use REF for homozygous reference (0/0), ALT for homozygous alternate (1/1), and a random choice for heterozygous (0/1)
-            if [[ "$GENOTYPE" == "0/0" ]]; then
-                SEQUENCE+="$REF"
-            elif [[ "$GENOTYPE" == "1/1" ]]; then
-                SEQUENCE+="$ALT"
-            elif [[ "$GENOTYPE" == "0/1" ]]; then
-                SEQUENCE+="$ALT"  # You could choose to randomly pick REF or ALT if necessary
-            fi
-        done < temp_variants.txt
-
-        # Write the final sequence to the FASTA file
-        echo "$SEQUENCE" >> ${REGION_FASTA_FILE}
-        echo "Appended sequence for strain ${STRAIN_NAME} to ${REGION_FASTA_FILE}"
-
-        # Clean up
-        rm temp_variants.txt
-    done
-done
-
-echo "Sequence extraction from VCF completed."
+            GENOTYPE=$(echo "$LINE" | cut -d ' ' -f 4
