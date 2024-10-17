@@ -1,33 +1,36 @@
 #!/bin/bash
-#SBATCH --job-name=GenomicAnalysis
-#SBATCH --output=GenomicAnalysis_%j.log
-#SBATCH --error=GenomicAnalysis_%j.err
+#SBATCH --job-name=ExtractSequences
+#SBATCH --output=ExtractSequences_%j.log
+#SBATCH --error=ExtractSequences_%j.err
 #SBATCH --partition=long
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --time=120:00:00
+#SBATCH --cpus-per-task=4
+#SBATCH --time=24:00:00
 #SBATCH --mem=32G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
-# Load GATK module
-module load GATK/4.1.2.0-GCCcore-8.2.0-Java-1.8 
+# Load BCFtools module
+module load BCFtools
 
 # Define variables
-REF_GENOME="0_index/referenceIPO323/Zymoseptoria_tritici.MG2.dna.toplevel.fa"
-GVCF_DIR="4_processing/GVCF"
-DB_PATH="$GVCF_DIR/GenomicsDB"
-FINAL_VCF="$GVCF_DIR/final_joint_called.vcf"
-ORIGINAL_INTERVAL_LIST="$GVCF_DIR/interval.list"
-INTERVAL_LIST="$GVCF_DIR/formatted.interval_list"
-TMP_DIR="$GVCF_DIR/tmp"
+VCF_FILE="4_processing/GVCF/final_joint_called.vcf"
+OUTPUT_DIR="extracted_sequences"
+REGION="3:247434-251178"  # Define the region you are interested in
+OUTPUT_FASTA="${OUTPUT_DIR}/extracted_sequences_${REGION}.fasta"
 
-# Perform joint genotyping
-gatk GenotypeGVCFs \
-   -R $REF_GENOME \
-   -V gendb://$DB_PATH \
-   -O $FINAL_VCF \
-   -L $INTERVAL_LIST
+# Create the output directory if it does not exist
+mkdir -p ${OUTPUT_DIR}
 
-echo "Joint variant calling completed."
+# Extract the variant sequences from the VCF file for the specified region
+echo "Extracting sequences for region ${REGION} from VCF file: ${VCF_FILE}"
+bcftools consensus -f $VCF_FILE -r $REGION -o $OUTPUT_FASTA
+
+# Check if the sequence extraction was successful
+if [[ -s ${OUTPUT_FASTA} ]]; then
+    echo "Sequence extraction completed successfully. Output saved to: ${OUTPUT_FASTA}"
+else
+    echo "Error: No sequences were extracted. Please check if the region contains variants or if the VCF file is correct."
+fi
+
