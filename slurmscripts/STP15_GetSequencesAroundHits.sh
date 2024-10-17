@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #SBATCH --job-name=ExtractSequences
 #SBATCH --output=ExtractSequences_%j.log
 #SBATCH --error=ExtractSequences_%j.err
@@ -24,7 +25,7 @@ mkdir -p ${OUTPUT_DIR}
 mkdir -p ${OUTPUT_DIR_CONSENSUS}
 
 # Define regions to extract - 500bp flanking regions
-REGIONS=("3:247800-3:248000")
+REGIONS=("3:247434-251178")
 
 # Extract SNP positions and create BED files
 for REGION in "${REGIONS[@]}"; do
@@ -43,7 +44,7 @@ done
 
 echo "Reference sequence extraction completed."
 
-# Initialize or clear region-specific consensus FASTA files
+# Initialize or clear region-specific consensus FASTA file
 for REGION in "${REGIONS[@]}"; do
     IFS=':' read -ra ADDR <<< "$REGION"
     CHROM=${ADDR[0]}
@@ -54,6 +55,7 @@ for REGION in "${REGIONS[@]}"; do
     > ${REGION_FASTA_FILE} # Clear the file if it exists or create it if not
 done
 
+# Loop through VCF files and generate consensus sequences for each strain
 for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
     STRAIN_NAME=$(basename ${VCF_FILE} | cut -d'.' -f1)
 
@@ -95,14 +97,13 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
 
         # Append the consensus sequence with header to the region-specific FASTA file
         if [ -s temp_consensus.fasta ]; then
-            echo ">${STRAIN_NAME}" > temp_header.fasta
-            cat temp_consensus.fasta >> temp_header.fasta
-            cat temp_header.fasta >> ${REGION_FASTA_FILE}
+            echo ">${STRAIN_NAME}" >> ${REGION_FASTA_FILE}
+            cat temp_consensus.fasta >> ${REGION_FASTA_FILE}
         else
             echo "Skipping strain ${STRAIN_NAME} due to empty consensus sequence."
         fi
 
         # Clean up temporary files
-        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi temp_consensus.fasta temp_header.fasta
+        rm ${TEMP_VCF}.gz ${TEMP_VCF}.gz.csi temp_consensus.fasta
     done
 done
