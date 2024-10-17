@@ -12,7 +12,7 @@
 #SBATCH --mail-user="deniz.akdemir.work@gmail.com"
 
 # Load required modules
-module load BCFtools/1.9-GCC-8.2.0-2.31.1
+module load BCFtools
 
 # Define variables
 VCF_DIR="4_processing/GVCF"
