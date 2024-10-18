@@ -53,7 +53,7 @@ for REGION in "${REGIONS[@]}"; do
     START=${POS[0]}
     END=${POS[1]}
     REGION_STR="${CHROM}:${START}-${END}"
-    REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/vcf_sequences_${CHROM}_${START}_${END}.fasta"
+    REGION_FASTA_FILE="${OUTPUT_DIR_CONSENSUS}/vcf_sequences_tassel_${CHROM}_${START}_${END}.fasta"
 
     # Filter VCF for the specific region and extract sequences
     echo "Extracting variant information for region: ${REGION_STR}"
