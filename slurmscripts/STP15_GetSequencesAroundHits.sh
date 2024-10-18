@@ -74,8 +74,8 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
         fi
 
         # Build sequence for the strain by interpreting the genotypes
-        echo ">${STRAIN_NAME}" >> ${REGION_FASTA_FILE}
         SEQUENCE=""
+
         while read -r LINE; do
             CHROM_POS=$(echo "$LINE" | cut -d ' ' -f 1)
             REF=$(echo "$LINE" | cut -d ' ' -f 2)
@@ -84,22 +84,23 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
 
             echo "Processing variant at ${CHROM_POS} with REF=${REF}, ALT=${ALT}, GENOTYPE=${GENOTYPE}"
 
-            # Use REF for homozygous reference (0/0), ALT for homozygous alternate (1/1), and a random choice for heterozygous (0/1)
+            # Use REF for homozygous reference (0/0), ALT for homozygous alternate (1/1), and REF for heterozygous (0/1)
             if [[ "$GENOTYPE" == "0" ]]; then
                 SEQUENCE+="$REF"
             elif [[ "$GENOTYPE" == "1" ]]; then
                 SEQUENCE+="$ALT"
             else
-                echo "Warning: Unrecognized genotype ${GENOTYPE} at ${CHROM_POS}"
+                SEQUENCE+="$REF"  # For any unknown or heterozygous cases
             fi
         done < temp_variants.txt
 
-        # Write the final sequence to the FASTA file
-        if [[ -z "$SEQUENCE" ]]; then
-            echo "No sequence generated for strain ${STRAIN_NAME}, skipping..."
-        else
+        # Ensure that the header with the sample ID is written before the sequence
+        if [[ -n "$SEQUENCE" ]]; then
+            echo ">${STRAIN_NAME}" >> ${REGION_FASTA_FILE}
             echo "$SEQUENCE" >> ${REGION_FASTA_FILE}
             echo "Appended sequence for strain ${STRAIN_NAME} to ${REGION_FASTA_FILE}"
+        else
+            echo "No sequence generated for strain ${STRAIN_NAME}, skipping..."
         fi
 
         # Clean up
