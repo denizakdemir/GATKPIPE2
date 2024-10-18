@@ -85,12 +85,10 @@ for VCF_FILE in $(ls ${VCF_DIR}/*.vcf.gz | grep -v 'sorted'); do
             echo "Processing variant at ${CHROM_POS} with REF=${REF}, ALT=${ALT}, GENOTYPE=${GENOTYPE}"
 
             # Use REF for homozygous reference (0/0), ALT for homozygous alternate (1/1), and a random choice for heterozygous (0/1)
-            if [[ "$GENOTYPE" == "0/0" ]]; then
+            if [[ "$GENOTYPE" == "0" ]]; then
                 SEQUENCE+="$REF"
-            elif [[ "$GENOTYPE" == "1/1" ]]; then
+            elif [[ "$GENOTYPE" == "1" ]]; then
                 SEQUENCE+="$ALT"
-            elif [[ "$GENOTYPE" == "0/1" ]]; then
-                SEQUENCE+="$ALT"  # You could choose to randomly pick REF or ALT if necessary
             else
                 echo "Warning: Unrecognized genotype ${GENOTYPE} at ${CHROM_POS}"
             fi
