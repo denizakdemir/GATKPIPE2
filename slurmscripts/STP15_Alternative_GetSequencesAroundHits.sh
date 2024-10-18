@@ -106,3 +106,4 @@ for REGION in "${REGIONS[@]}"; do
 done
 
 echo "Sequence extraction from VCF completed."
+
